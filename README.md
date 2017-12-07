@@ -48,6 +48,6 @@ For Windows platfrom development, Visual Studio 10 should be installed with SP1.
 
 ## License
 
-This project is licensed under the BSD License - see the [LICENSE.txt](LICENSE.md) file for details
+This project is licensed under the BSD License - see the [LICENSE](LICENSE.md) file for details
 
 
