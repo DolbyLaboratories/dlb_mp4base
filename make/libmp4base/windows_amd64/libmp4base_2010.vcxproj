@@ -1,0 +1,151 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="debug|x64">
+      <Configuration>debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="release|x64">
+      <Configuration>release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <Keyword>Win32Proj</Keyword>
+    <ProjectName>libmp4base</ProjectName>
+    <ProjectGuid>{5A392841-13ED-309D-B16B-42198EF20C55}</ProjectGuid>
+    <RootNamespace>libmp4base</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='debug|x64'" Label="Configuration">
+    <CharacterSet>Unicode</CharacterSet>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='release|x64'" Label="Configuration">
+    <CharacterSet>Unicode</CharacterSet>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='debug|x64'" Label="PropertySheets">
+    <Import Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='release|x64'" Label="PropertySheets">
+    <Import Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='debug|x64'">$(Configuration)\VS2010\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='debug|x64'">$(SolutionDir)$(Configuration)\VS2010\</OutDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='debug|x64'">true</LinkIncremental>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='release|x64'">$(Configuration)\VS2010\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='release|x64'">$(SolutionDir)$(Configuration)\VS2010\</OutDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='release|x64'">false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>..\..\..\..;..\..\..\include;..\..\..\include;..\..\..\include</AdditionalIncludeDirectories>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <BufferSecurityCheck>true</BufferSecurityCheck>
+      <CompileAs>Default</CompileAs>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DisableSpecificWarnings>4714;4310;4100;4706;4127</DisableSpecificWarnings>
+      <ExceptionHandling />
+      <MinimalRebuild>false</MinimalRebuild>
+      <Optimization>Disabled</Optimization>
+      <DisableLanguageExtensions>false</DisableLanguageExtensions>
+      <PreprocessorDefinitions>DEBUG=1;EMA_BUILD=1;WIN32=1;WIN64=1;_CRT_SECURE_NO_DEPRECATE=1;_CRT_SECURE_NO_WARNINGS=1;_LIB=1</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader />
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <Lib>
+      <AdditionalDependencies />
+      <AdditionalLibraryDirectories />
+      <IgnoreSpecificDefaultLibraries />
+    </Lib>
+    <ProjectReferences>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+    </ProjectReferences>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>..\..\..\..;..\..\..\include;..\..\..\include;..\..\..\include</AdditionalIncludeDirectories>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <CompileAs>Default</CompileAs>
+      <DebugInformationFormat />
+      <DisableSpecificWarnings>4714;4310;4100;4706;4127</DisableSpecificWarnings>
+      <ExceptionHandling />
+      <MinimalRebuild>false</MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <DisableLanguageExtensions>false</DisableLanguageExtensions>
+      <PreprocessorDefinitions>EMA_BUILD=1;NDEBUG=1;WIN32=1;WIN64=1;_CRT_SECURE_NO_DEPRECATE=1;_CRT_SECURE_NO_WARNINGS=1;_LIB=1</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <PrecompiledHeader />
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <Lib>
+      <AdditionalDependencies />
+      <AdditionalLibraryDirectories />
+      <IgnoreSpecificDefaultLibraries />
+    </Lib>
+    <ProjectReferences>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+    </ProjectReferences>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\src\esparser\dsi.c" />
+    <ClCompile Include="..\..\..\src\esparser\parser.c" />
+    <ClCompile Include="..\..\..\src\esparser\parser_aac.c" />
+    <ClCompile Include="..\..\..\src\esparser\parser_ac4.c" />
+    <ClCompile Include="..\..\..\src\esparser\parser_avc.c" />
+    <ClCompile Include="..\..\..\src\esparser\parser_avc_dec.c" />
+    <ClCompile Include="..\..\..\src\esparser\parser_avc_dpb.c" />
+    <ClCompile Include="..\..\..\src\esparser\parser_dd.c" />
+    <ClCompile Include="..\..\..\src\esparser\parser_hevc.c" />
+    <ClCompile Include="..\..\..\src\esparser\parser_hevc_dec.c" />
+    <ClCompile Include="..\..\..\src\mp4_isom.c" />
+    <ClCompile Include="..\..\..\src\mp4_muxer.c" />
+    <ClCompile Include="..\..\..\src\mp4_stream.c" />
+    <ClCompile Include="..\..\..\src\util\io_base.c" />
+    <ClCompile Include="..\..\..\src\util\io_buffer.c" />
+    <ClCompile Include="..\..\..\src\util\io_file.c" />
+    <ClCompile Include="..\..\..\src\util\list_itr.c" />
+    <ClCompile Include="..\..\..\src\util\msg_log.c" />
+    <ClCompile Include="..\..\..\src\util\registry.c" />
+    <ClCompile Include="..\..\..\src\util\utils.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\include\boolean.h" />
+    <ClInclude Include="..\..\..\include\c99_inttypes.h" />
+    <ClInclude Include="..\..\..\include\dsi.h" />
+    <ClInclude Include="..\..\..\include\io_base.h" />
+    <ClInclude Include="..\..\..\include\list_itr.h" />
+    <ClInclude Include="..\..\..\include\memory_chk.h" />
+    <ClInclude Include="..\..\..\include\mp4_encrypt.h" />
+    <ClInclude Include="..\..\..\include\mp4_frag.h" />
+    <ClInclude Include="..\..\..\include\mp4_isom.h" />
+    <ClInclude Include="..\..\..\include\mp4_muxer.h" />
+    <ClInclude Include="..\..\..\include\mp4_stream.h" />
+    <ClInclude Include="..\..\..\include\msg_log.h" />
+    <ClInclude Include="..\..\..\include\parser.h" />
+    <ClInclude Include="..\..\..\include\parser_aac.h" />
+    <ClInclude Include="..\..\..\include\parser_ac4.h" />
+    <ClInclude Include="..\..\..\include\parser_avc_dec.h" />
+    <ClInclude Include="..\..\..\include\parser_avc_dpb.h" />
+    <ClInclude Include="..\..\..\include\parser_dd.h" />
+    <ClInclude Include="..\..\..\include\parser_defs.h" />
+    <ClInclude Include="..\..\..\include\parser_hevc_dec.h" />
+    <ClInclude Include="..\..\..\include\registry.h" />
+    <ClInclude Include="..\..\..\include\return_codes.h" />
+    <ClInclude Include="..\..\..\include\utils.h" />
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets" />
+</Project>

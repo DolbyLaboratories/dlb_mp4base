@@ -1,0 +1,28 @@
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "utils_test", "utils_test_2010.vcxproj", "{5D146334-64C6-3C5D-80D5-7DA3B35E2BAD}"
+	ProjectSection(ProjectDependencies) = postProject
+		{5A392841-13ED-309D-B16B-42198EF20C55} = {5A392841-13ED-309D-B16B-42198EF20C55}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libmp4base", "..\..\libmp4base\windows_amd64\libmp4base_2010.vcxproj", "{5A392841-13ED-309D-B16B-42198EF20C55}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		debug|x64 = debug|x64
+		release|x64 = release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5A392841-13ED-309D-B16B-42198EF20C55}.debug|x64.ActiveCfg = debug|x64
+		{5A392841-13ED-309D-B16B-42198EF20C55}.debug|x64.Build.0 = debug|x64
+		{5D146334-64C6-3C5D-80D5-7DA3B35E2BAD}.debug|x64.ActiveCfg = debug|x64
+		{5D146334-64C6-3C5D-80D5-7DA3B35E2BAD}.debug|x64.Build.0 = debug|x64
+		{5A392841-13ED-309D-B16B-42198EF20C55}.release|x64.ActiveCfg = release|x64
+		{5A392841-13ED-309D-B16B-42198EF20C55}.release|x64.Build.0 = release|x64
+		{5D146334-64C6-3C5D-80D5-7DA3B35E2BAD}.release|x64.ActiveCfg = release|x64
+		{5D146334-64C6-3C5D-80D5-7DA3B35E2BAD}.release|x64.Build.0 = release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

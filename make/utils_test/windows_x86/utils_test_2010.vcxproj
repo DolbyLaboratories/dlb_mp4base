@@ -1,0 +1,147 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="debug|Win32">
+      <Configuration>debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="release|Win32">
+      <Configuration>release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <Keyword>Win32Proj</Keyword>
+    <ProjectName>utils_test</ProjectName>
+    <ProjectGuid>{E3A77E13-8851-3655-B921-3D82DF66AA07}</ProjectGuid>
+    <RootNamespace>utils_test</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='debug|Win32'" Label="Configuration">
+    <CharacterSet>Unicode</CharacterSet>
+    <ConfigurationType>Application</ConfigurationType>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='release|Win32'" Label="Configuration">
+    <CharacterSet>Unicode</CharacterSet>
+    <ConfigurationType>Application</ConfigurationType>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='debug|Win32'" Label="PropertySheets">
+    <Import Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='release|Win32'" Label="PropertySheets">
+    <Import Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='debug|Win32'">$(Configuration)\VS2010\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='debug|Win32'">$(SolutionDir)$(Configuration)\VS2010\</OutDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='debug|Win32'">true</LinkIncremental>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='release|Win32'">$(Configuration)\VS2010\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='release|Win32'">$(SolutionDir)$(Configuration)\VS2010\</OutDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='release|Win32'">false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='debug|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>..\..\..\..;..\..\..\test\unit;..\..\..\include;..\..\..\include;..\..\..\include</AdditionalIncludeDirectories>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <BufferSecurityCheck>true</BufferSecurityCheck>
+      <CompileAs>Default</CompileAs>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <DisableSpecificWarnings>4714;4310;4100;4706;4127</DisableSpecificWarnings>
+      <ExceptionHandling />
+      <MinimalRebuild>true</MinimalRebuild>
+      <Optimization>Disabled</Optimization>
+      <DisableLanguageExtensions>false</DisableLanguageExtensions>
+      <PreprocessorDefinitions>DEBUG=1;WIN32=1;_CONSOLE=1;_CRT_SECURE_NO_DEPRECATE=1;_CRT_SECURE_NO_WARNINGS=1</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader />
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies />
+      <AdditionalLibraryDirectories />
+      <EnableCOMDATFolding>false</EnableCOMDATFolding>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries />
+      <ModuleDefinitionFile />
+      <OptimizeReferences>false</OptimizeReferences>
+      <OutputFile>$(OutDir)$(ProjectName).exe</OutputFile>
+      <SubSystem>Console</SubSystem>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='release|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>..\..\..\..;..\..\..\test\unit;..\..\..\include;..\..\..\include;..\..\..\include</AdditionalIncludeDirectories>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <CompileAs>Default</CompileAs>
+      <DebugInformationFormat />
+      <DisableSpecificWarnings>4714;4310;4100;4706;4127</DisableSpecificWarnings>
+      <ExceptionHandling />
+      <MinimalRebuild>false</MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <DisableLanguageExtensions>false</DisableLanguageExtensions>
+      <PreprocessorDefinitions>NDEBUG=1;WIN32=1;_CONSOLE=1;_CRT_SECURE_NO_DEPRECATE=1;_CRT_SECURE_NO_WARNINGS=1</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <PrecompiledHeader />
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies />
+      <AdditionalLibraryDirectories />
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries />
+      <ModuleDefinitionFile />
+      <OptimizeReferences>true</OptimizeReferences>
+      <OutputFile>$(OutDir)$(ProjectName).exe</OutputFile>
+      <SubSystem>Console</SubSystem>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\test\unit\test_util.c" />
+    <ClCompile Include="..\..\..\test\unit\utils_test.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\include\boolean.h" />
+    <ClInclude Include="..\..\..\include\c99_inttypes.h" />
+    <ClInclude Include="..\..\..\include\dsi.h" />
+    <ClInclude Include="..\..\..\include\io_base.h" />
+    <ClInclude Include="..\..\..\include\list_itr.h" />
+    <ClInclude Include="..\..\..\include\memory_chk.h" />
+    <ClInclude Include="..\..\..\include\mp4_demuxer.h" />
+    <ClInclude Include="..\..\..\include\mp4_encrypt.h" />
+    <ClInclude Include="..\..\..\include\mp4_frag.h" />
+    <ClInclude Include="..\..\..\include\mp4_isom.h" />
+    <ClInclude Include="..\..\..\include\mp4_muxer.h" />
+    <ClInclude Include="..\..\..\include\mp4_stream.h" />
+    <ClInclude Include="..\..\..\include\msg_log.h" />
+    <ClInclude Include="..\..\..\include\parser.h" />
+    <ClInclude Include="..\..\..\include\parser_aac.h" />
+    <ClInclude Include="..\..\..\include\parser_avc_dec.h" />
+    <ClInclude Include="..\..\..\include\parser_avc_dpb.h" />
+    <ClInclude Include="..\..\..\include\parser_dd.h" />
+    <ClInclude Include="..\..\..\include\parser_defs.h" />
+    <ClInclude Include="..\..\..\include\parser_vc1_dec.h" />
+    <ClInclude Include="..\..\..\include\registry.h" />
+    <ClInclude Include="..\..\..\include\return_codes.h" />
+    <ClInclude Include="..\..\..\include\utils.h" />
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="..\..\libmp4base\windows_x86\libmp4base_2010.vcxproj">
+      <Project>{B5EFD117-D45F-34E4-89D9-4397C383EC1D}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets" />
+</Project>
