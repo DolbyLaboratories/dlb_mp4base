@@ -1,53 +1,51 @@
 # dlb_mp4base
 
-The dlb_mp4base is a library which  developed by Dolby under the BSD license. The library can cooperates with front-end program to form a tool to efficiently mux Dolby Technologies(including AC3, EC3 and DoVi ) into ISO base media file format (aka mp4 container).
+The dlb_mp4base is a library developed by Dolby under the BSD-3 license. The library can cooperate with frontend program to generate a tool to efficiently multiplex Dolby Technologies(including AC3, EC3, AC4 and DoVi ) into ISO base media file format (aka mp4 container).
 
 ## Getting Started
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
+These instructions help you get a copy of the project up and running on your local machine for development and testing purposes. 
 
 ### Folder Structure
 
-The "dlb_mp4base" folder comprises:
+The "dlb_mp4base" folder consists of:
 
-- README.md         This file
-- doc/                       Doxygen documentation of dlb_mp4base (planned)
-- frontend/               MP4Muxer frontend with corresponding "EMA" interface as source code
-- include/                 necessary header files of dlb_mp4base
-- make/                    Makefiles and Visual Studio projects/solutions for building the Dolby MP4 Muxer lib with frontends and test harnesses.
-- src/                        Contains the MP4 Muxer source code
-- test/                       Test harnesses for unit and developer system tests including belonging test signals.
+- README.md         This file.
+- doc/              Doxygen documentation of the dlb_mp4base.
+- frontend/         MP4Muxer frontend with corresponding EMA interface as source code.
+- include/          Necessary header files of the dlb_mp4base library.
+- make/             Makefiles and Visual Studio projects/solutions for building the Dolby MP4 multiplexer library with frontends and test harnesses.
+- src/              Contains the MP4 multiplexer source code.
+- test/             Test harnesses for unit and developer system tests including test signals.
 
 ### Prerequisites
 
-For Windows platfrom development, Visual Studio 10 should be installed with SP1.
+For Windows platform development, Visual Studio 2010 must be installed with SP1.
 
 ### Building instructions
 
-#### Using make (on Linux)
+#### Using the makefiles (on Linux)
 
-    After cloning dlb_mp4base repo to local, go to the appropriate directory, dependent on your machine OS and architecture:
+    After cloning the dlb_mp4base repository to your local machine, go to the appropriate directory, depending on your machine OS and architecture, such as:
     "cd dlb_mp4base/make/mp4muxer<architecture>"
 
-    Then build one of the following make targets
+    Then build one of the following make targets:
     "make mp4muxer_release"
     "make mp4muxer_debug"
 
-    In the above, mp4author can be one of the following
-    "mp4muxer"
-    "libmp4base"
-    "utils_test"
+#### Using the Visual Studio Solutions(on Windows)
 
-#### Using Visual Studio Solution(on	Windows)
-
-    From a VS2010 CMD window:
+    From a Visual Studio 2010 command line window:
     Go to a directory of your choice
-    "cd dlb_mp4base\make\mp4muxer\windows_amd64"
+    "cd dlb_mp4base\make\mp4muxer\mp4muxer<architecture>"
     "devenv mp4muxer_2010.sln /rebuild debug/release"
 
+## Release Note
+
+See the [ReleaseNote](ReleaseNote) file for details
 
 ## License
 
-This project is licensed under the BSD License - see the [LICENSE](LICENSE) file for details
+This project is licensed under the BSD-3 License - see the [LICENSE](LICENSE) file for details
 
 
