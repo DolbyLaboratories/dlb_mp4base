@@ -1,6 +1,6 @@
-# dlb_mp4base
+# dlb_mp4base v1.0.0
 
-The dlb_mp4base is a library developed by Dolby under the BSD-3 license. The library can cooperate with frontend program to generate a tool to efficiently multiplex Dolby Technologies(including AC3, EC3, AC4 and DoVi ) into ISO base media file format (aka mp4 container).
+The Dolby MP4 streaming muxer (dlb_mp4base) is a software implementation of a demuxer of fragmented or unfragmented ISO base media file (mp4) format. It supports muxing of Dolby Digital (AC-3), Dolby Digital Plus (E-AC-3) audio formats as well as Dolby Vision.
 
 ## Getting Started
 
