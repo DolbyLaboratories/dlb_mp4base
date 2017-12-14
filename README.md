@@ -4,7 +4,7 @@ The Dolby MP4 streaming muxer (dlb_mp4base) is a software implementation of a de
 
 ## Getting Started
 
-These instructions help you get a copy of the project up and running on your local machine for development and testing purposes. 
+These instructions will help you get a copy of the project up and running on your local machine for development and testing purposes. 
 
 ### Folder Structure
 
@@ -42,7 +42,7 @@ For Windows platform development, Visual Studio 2010 must be installed with SP1.
 
 ## Release Note
 
-See the [ReleaseNote](ReleaseNote) file for details
+See the [Release Notes](ReleaseNotes.md) file for details
 
 ## License
 
