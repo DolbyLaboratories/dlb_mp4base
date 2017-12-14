@@ -1,4 +1,4 @@
-## Library Features:
+## v1.0.0 Library Features:
 
   * Single pass multiplexing for fragmented or unfragmented files
   * API providing access to multiplexer 
