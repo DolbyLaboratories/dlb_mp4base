@@ -1,4 +1,4 @@
-# dlb_mp4base v1.0.0
+# dlb_mp4base
 
 The Dolby MP4 streaming muxer (dlb_mp4base) is a software implementation of a demuxer of fragmented or unfragmented ISO base media file (mp4) format. It supports muxing of Dolby Digital (AC-3), Dolby Digital Plus (E-AC-3) audio formats as well as Dolby Vision.
 
