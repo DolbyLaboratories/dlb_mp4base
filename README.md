@@ -40,7 +40,7 @@ For Windows platform development, Visual Studio 2010 must be installed with SP1.
     "cd dlb_mp4base\make\mp4muxer\mp4muxer<architecture>"
     "devenv mp4muxer_2010.sln /rebuild debug/release"
 
-## Release Note
+## Release Notes
 
 See the [Release Notes](ReleaseNotes.md) file for details
 
