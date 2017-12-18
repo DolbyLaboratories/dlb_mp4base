@@ -572,9 +572,9 @@ ema_mp4_mux_create(ema_mp4_ctrl_handle_t *handle)
     /**** init system */
     MEM_CHK_INIT();
 #ifdef DEBUG
-    msglog_global_verbosity_set(MSGLOG_INFO);   /** the level for msglog() messages defaults to info in debug builds */
+    msglog_global_verbosity_set(MSGLOG_WARNING);   /** the level for msglog() messages defaults to warning in debug builds */
 #else
-    msglog_global_verbosity_set(MSGLOG_WARNING);  /** the level for msglog() messages defaults to warning in release builds */
+    msglog_global_verbosity_set(MSGLOG_ERR);  /** the level for msglog() messages defaults to error in release builds */
 #endif
 
     /**** init registry data base */
