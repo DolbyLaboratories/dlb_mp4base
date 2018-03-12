@@ -89,7 +89,7 @@ file_open(bbio_handle_t bbio, const int8_t *dev_name)
             /** absolute path already */
             uint32_t path_len;
 
-            path_len = (uint32_t)(pd - dev_name + 1); /** +1 => include PATH_DELIMITER */
+            path_len = (uint32_t)((int8_t *)pd - dev_name + 1); /** +1 => include PATH_DELIMITER */
             f->dev_path = MALLOC_CHK((uint32_t)path_len + 1); /** +1 => to put '\0' */
             OSAL_STRNCPY(f->dev_path, path_len + 1, dev_name, path_len);
             f->dev_path[path_len]='\0';
@@ -107,7 +107,7 @@ file_open(bbio_handle_t bbio, const int8_t *dev_name)
 
             if (pd) {
                 /** have relative path: absolute path = cwd PATH_DELIMITER relative path */
-                uint32_t rp_len = (uint32_t)(pd - dev_name + 1); /** +1 => include PATH_DELIMITER */
+                uint32_t rp_len = (uint32_t)((int8_t *)pd - dev_name + 1); /** +1 => include PATH_DELIMITER */
 
                 f->dev_path = MALLOC_CHK(cwd_len + rp_len + 2); /** +2: PATH_DELIMITER and '\0' */
                 OSAL_STRNCPY(f->dev_path, cwd_len + rp_len + 2, cwd, cwd_len);
