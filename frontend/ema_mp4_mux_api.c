@@ -383,6 +383,12 @@ ema_mp4_mux_start(ema_mp4_ctrl_handle_t handle)
         handle->usr_cfg_mux.dv_bl_non_comp_flag = 1;
     }
 
+	if((handle->usr_cfg_mux.ext_timing_info.ext_dv_profile == 8 ) && (handle->usr_cfg_mux.ext_timing_info.ext_dv_bl_compatible_id == 0))
+	{
+             msglog(NULL, MSGLOG_ERR, "Error: For Dolby vision profile 8, dv-bl-compatible-id should be set, value can be 1 or 2.\n");
+             return EMA_MP4_MUXED_PARAM_ERR;
+	}
+
     if ( (handle->usr_cfg_mux.output_format == OUTPUT_FORMAT_DASH) ||
          (handle->usr_cfg_mux.output_format == OUTPUT_FORMAT_FRAG_MP4) )
     {
@@ -620,6 +626,8 @@ ema_mp4_mux_create(ema_mp4_ctrl_handle_t *handle)
     usr_cfg_mux_ptr->ext_timing_info.time_scale        = 30000;
     usr_cfg_mux_ptr->ext_timing_info.num_units_in_tick = 1000;        /** default time_scale/num_units_in_tick for video frame-rate: 30 fps */
     usr_cfg_mux_ptr->ext_timing_info.ext_dv_profile    = 0xff;
+	usr_cfg_mux_ptr->ext_timing_info.ac4_bitrate = 0;
+	usr_cfg_mux_ptr->ext_timing_info.ac4_bitrate_precision = 0xffffffff;
     usr_cfg_mux_ptr->fix_cm_time            = 0;
     usr_cfg_mux_ptr->chunk_span_time        = 250;                    /** default 250ms */
     usr_cfg_mux_ptr->frag_cfg_flags         = ISOM_FRAGCFG_DEFAULT;
@@ -1032,9 +1040,23 @@ ema_mp4_mux_set_dv_es_mode(ema_mp4_ctrl_handle_t handle, const int8_t *mode)
 uint32_t 
 ema_mp4_mux_set_dv_profile(ema_mp4_ctrl_handle_t handle, int32_t profile)
 {
-    if ((profile >= 0) && (profile < 10)) 
+    if ((profile == 4) || (profile == 5) || (profile >= 7) && (profile <= 9)) 
     {
-        handle->usr_cfg_mux.ext_timing_info.ext_dv_profile = (uint8_t)profile;
+		handle->usr_cfg_mux.ext_timing_info.ext_dv_profile = (uint8_t)profile;
+        return EMA_MP4_MUXED_OK;
+    }
+    else
+    {
+        return EMA_MP4_MUXED_PARAM_ERR;
+    }
+}
+
+uint32_t
+ema_mp4_mux_set_dv_bl_compatible_id(ema_mp4_ctrl_handle_t handle, int32_t compatible_id)
+{
+	if ((compatible_id >= 0) && (compatible_id <= 6)) 
+    {
+        handle->usr_cfg_mux.ext_timing_info.ext_dv_bl_compatible_id = (uint8_t)compatible_id;
         return EMA_MP4_MUXED_OK;
     }
     else

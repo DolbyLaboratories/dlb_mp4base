@@ -43,9 +43,9 @@
 #ifdef ENABLE_MP4_MSGLOG
 
 #ifdef DEBUG
-static msglog_level_t msg_log_level = MSGLOG_INFO;     /**< The global msglog level. */
+static msglog_level_t msg_log_level = MSGLOG_ERR;     /**< The global msglog level. */
 #else
-static msglog_level_t msg_log_level = MSGLOG_WARNING;  /**< The global msglog level. */
+static msglog_level_t msg_log_level = MSGLOG_ERR;  /**< The global msglog level. */
 #endif
 
 static int            msg_color_out = 0;               /**< The global msglog flag for colorized messages. */

@@ -413,8 +413,12 @@ typedef struct ext_timing_info_t_
     unsigned override_timing;    /** if over ride timing info in sps */
     /** externally time_scale/num_units_in_tick define frame rate in overiding */
     uint32_t time_scale, num_units_in_tick;
-    uint8_t         ext_dv_profile;      /** dolby vision profile, overriding set by user */
-    uint8_t         ext_dv_bl_compatible_id; /** dolby vision profile, must provided by user if profile ID is 8 */
+    uint8_t         ext_dv_profile;           /* dolby vision profile, overriding set by user */
+    uint8_t         ext_dv_bl_compatible_id;  /* dolby vision profile, must provided by user if profile ID is 8 */
+    uint8_t         ps_present_flag;          /* the indicator of dsi info (H264: SPS/PPS; H265: VPS/SPS/PPS) in sample entry box */
+    uint32_t        ac4_bitrate;
+    uint32_t        ac4_bitrate_precision;
+    uint32_t        hls_flag;
 } ext_timing_info_t;
 
 #ifdef WANT_GET_SAMPLE_PUSH
@@ -455,6 +459,9 @@ typedef struct codec_config_t_
     uint32_t        dv_el_dsi_size;       /** dolby vision el dsi buff size */                                              \
     uint8_t *       dv_el_dsi_buf;        /** dolby vision el dsi buff */                                                   \
     uint8_t         dv_level;             /** dolby vision level */                                                         \
+    uint32_t        ac4_bitstream_version; /* ac-4 bitstream version */                                 \
+    uint32_t        ac4_presentation_version; /* ac-4 main presentation version */                      \
+    uint32_t        ac4_mdcompat; /* ac-4  decoder compatibility indication */                          \
     /** decoder only */                                                                                                     \
     list_handle_t   codec_config_lst;     /** handle to codec config list */                                                \
     codec_config_t* curr_codec_config;    /** handle to current codec config in codec_config_lst */                         \
@@ -469,6 +476,8 @@ typedef struct codec_config_t_
     uint32_t bit_rate;                                                                                                      \
     uint32_t buferSizeDB;                                                                                                   \
     uint32_t minBitrate, maxBitrate;                                                                                        \
+    uint32_t isJoC; /* 1: if it's ddp joc */                                                            \
+    uint32_t isReferencedEs;                                                                            \
                                                                                                                             \
     /**** for the convenience */                                                                                            \
     uint32_t frame_size;                                                                                                    \

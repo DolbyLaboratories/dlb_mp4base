@@ -1,25 +1,25 @@
-/************************************************************************************************************
- * Copyright (c) 2017, Dolby Laboratories Inc.
- * All rights reserved.
-
- * Redistribution and use in source and binary forms, with or without modification, are permitted
- * provided that the following conditions are met:
-
- * 1. Redistributions of source code must retain the above copyright notice, this list of conditions
- *    and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions
- *    and the following disclaimer in the documentation and/or other materials provided with the distribution.
- * 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or
- *    promote products derived from this software without specific prior written permission.
-
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
- * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
- * OF THE POSSIBILITY OF SUCH DAMAGE.
+/************************************************************************************************************
+ * Copyright (c) 2017, Dolby Laboratories Inc.
+ * All rights reserved.
+
+ * Redistribution and use in source and binary forms, with or without modification, are permitted
+ * provided that the following conditions are met:
+
+ * 1. Redistributions of source code must retain the above copyright notice, this list of conditions
+ *    and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions
+ *    and the following disclaimer in the documentation and/or other materials provided with the distribution.
+ * 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or
+ *    promote products derived from this software without specific prior written permission.
+
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
  ************************************************************************************************************/
 /*<
     @file mp4_muxer.c
@@ -1348,7 +1348,15 @@ write_dsi_box(bbio_handle_t snk, track_handle_t track)
         if (track->parser->dv_dsi_size)
         {
             sink_write_u32(snk,track->parser->dv_dsi_size + 8);
-            sink_write_4CC(snk,"dvcC");
+            if (track->parser->ext_timing.ext_dv_profile > 7)
+            {
+                sink_write_4CC(snk, "dvvC");
+            }
+            else
+            {
+                sink_write_4CC(snk, "dvcC");
+            }
+
             snk->write(snk, (uint8_t *)track->parser->dv_dsi_buf, track->parser->dv_dsi_size);
             size += track->parser->dv_dsi_size + 8;
         }
@@ -1515,28 +1523,25 @@ write_video_box(bbio_handle_t snk, track_handle_t track)
     /** Sample Entry */
     SKIP_SIZE_FIELD(snk);
 
-    if (
-        (track->parser->ext_timing.ext_dv_profile == 1)    /** non-bc compatible dual layer dual track, BL and EL track case; */
-        || (track->parser->ext_timing.ext_dv_profile == 3) /** non-bc compatible dual layer dual track, BL and EL track case; */
-        || ((track->parser->dv_rpu_nal_flag == 1) && (track->parser->dv_el_nal_flag == 0))  /** non-bc compatible single layer, single track; or dual layer dual track, EL track case; */
-        )
+    if (track->parser->ext_timing.ext_dv_profile == 5)
     {
         dolby_vision_flag = 1;
-    }
-
-    if (
-        ((track->parser->ext_timing.ext_dv_profile == 8) || (track->parser->ext_timing.ext_dv_profile == 9)) 
-        && ( track->parser->ext_timing.ext_dv_bl_compatible_id != 0)
-        )
-    {
-        dolby_vision_flag = 0;
     }
 
     /** sample entry name */
     if(dolby_vision_flag && !track->encryptor)
     {
-         if (IS_FOURCC_EQUAL(track->parser->dsi_FourCC, "avcC"))
-            codingname = "dvav";
+        if (IS_FOURCC_EQUAL(track->parser->dsi_FourCC, "avcC"))
+        {
+            if(IS_FOURCC_EQUAL(codingname, "avc1"))
+            {
+                codingname = "dva1";
+            } 
+            else
+            {
+                codingname = "dvav";
+            }
+        }
         else if (IS_FOURCC_EQUAL(track->parser->dsi_FourCC, "hvcC"))
         {
             if(IS_FOURCC_EQUAL(codingname, "hev1"))
@@ -1548,6 +1553,8 @@ write_video_box(bbio_handle_t snk, track_handle_t track)
                 codingname = "dvh1";
             }
         }
+        
+        memcpy(track->codingname, codingname, 4);
     }
     MOV_WRITE_SAMPLE_ENTRY(snk, (uint8_t *)codingname, track->data_ref_index);
 
@@ -1579,7 +1586,7 @@ write_video_box(bbio_handle_t snk, track_handle_t track)
 
     if(dolby_vision_flag)
     {
-        strncpy(compressor_name, "\013DOVI Coding", 13);
+        memcpy(compressor_name, "\013DOVI Coding", 13);
     }
     
     snk->write(snk, (uint8_t *)compressor_name, 32);
@@ -3479,7 +3486,7 @@ create_fragment_lst(mp4_ctrl_handle_t muxer, uint32_t first_sample_is_sync)
                     }
                     if (dts_id == NULL)
                     {
-                        if (track->media_duration < dts_max)
+                        if (track->media_duration <= dts_max)
                         {
                             idx_stop = list_get_entry_num(track->dts_lst);
                             dts = track->media_duration;
@@ -7020,7 +7027,7 @@ mp4_muxer_add_track (mp4_ctrl_handle_t  hmuxer
 
     if (hmuxer->usr_cfg_mux_ref->dv_bl_non_comp_flag)
     {
-        if (IS_FOURCC_EQUAL(codingname,"avc1"))
+        if (IS_FOURCC_EQUAL(codingname,"avc1") || IS_FOURCC_EQUAL(codingname,"avc3"))
         {
             FOURCC_ASSIGN(track->codingname, "dvav");
             FOURCC_ASSIGN(hparser->dsi_name, "dvav");
@@ -7476,7 +7483,10 @@ mp4_muxer_encrypt_track (track_handle_t         htrack
         uint32_t cnt = cv->count;
         while (cnt--)
         {
-            if ((IS_FOURCC_EQUAL(htrack->codingname, "avc1")) || (IS_FOURCC_EQUAL(htrack->codingname, "hvc1")) || (IS_FOURCC_EQUAL(htrack->codingname, "hev1")))
+            if ((IS_FOURCC_EQUAL(htrack->codingname, "avc1"))
+			 || (IS_FOURCC_EQUAL(codingname,"avc3"))
+			 || (IS_FOURCC_EQUAL(htrack->codingname, "hvc1")) 
+			 || (IS_FOURCC_EQUAL(htrack->codingname, "hev1")))
             {
                 int64_t *pos = (int64_t *)list_it_get_entry(htrack->pos_lst);
                 DPRINTF(NULL, "encrypting subsample\n");

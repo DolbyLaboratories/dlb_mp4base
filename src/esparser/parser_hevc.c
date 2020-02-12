@@ -399,7 +399,7 @@ ps_list_is_there_collision(list_handle_t *plist, uint8_t id, hevc_nal_handle_t n
 
 /** Returns true if SPS/PPS should be copied in the stream */
 static BOOL
-ps_list_update(parser_hevc_handle_t parser, list_handle_t *plist, uint8_t id, hevc_nal_handle_t nal, uint32_t *sample_flag)
+ps_list_update(parser_hevc_handle_t parser, list_handle_t *plist, uint8_t id, hevc_nal_handle_t nal, uint32_t *sample_flag, uint32_t dsi_in_mdat_flag)
 {
     it_list_handle_t it = it_create();
     buf_entry_t *    entry;
@@ -456,7 +456,11 @@ ps_list_update(parser_hevc_handle_t parser, list_handle_t *plist, uint8_t id, he
             }
             else if (parser->sd == 1)
             {
-                /** multiple sample description entries */
+                /* multiple sample description entries */
+                if (sample_flag && !dsi_in_mdat_flag)
+                {
+                    *sample_flag |= SAMPLE_NEW_SD;
+                }
                 ret = FALSE;
             }
         }
@@ -472,7 +476,7 @@ ps_list_update(parser_hevc_handle_t parser, list_handle_t *plist, uint8_t id, he
 
         list_add_entry(*plist, entry);
 
-        if (sample_flag)
+        if (sample_flag && !dsi_in_mdat_flag)
         {
             *sample_flag |= SAMPLE_NEW_SD;
         }
@@ -630,9 +634,18 @@ timing_info_update(parser_hevc_handle_t parser_hevc, hevc_decode_t * context)
             parser_hevc->dv_level = 8;
         }
         else if (level <= 3840*2160*60)
-        {
             parser_hevc->dv_level = 9;
+        else if (level <= 3840*2160*120)
+        {
+            if(parser_hevc->width == 7680)
+                parser_hevc->dv_level = 11;
+            else
+                parser_hevc->dv_level = 10;
         }
+        else if (level <= 7680*4320*60)
+            parser_hevc->dv_level = 12;
+        else
+            parser_hevc->dv_level = 13;
     }
 
 }
@@ -1058,7 +1071,7 @@ parser_hevc_get_sample(parser_handle_t parser, mp4_sample_handle_t sample)
     }
 #endif
 
-    if (IS_FOURCC_EQUAL(parser->dsi_name,"hev1"))
+    if (IS_FOURCC_EQUAL(parser->dsi_name,"hev1")  && parser->ext_timing.ps_present_flag != 2)
     {
         mp4ff_dsi->dsi_in_mdat = 1;
     }
@@ -1123,7 +1136,7 @@ parser_hevc_get_sample(parser_handle_t parser, mp4_sample_handle_t sample)
                         mp4ff_dsi = (mp4_dsi_hevc_handle_t)dsi_hevc;
                     }
 
-                    keep_nal = ps_list_update(parser_hevc, &(mp4ff_dsi->vps_lst), 0, nal, &sample->flags);
+                    keep_nal = ps_list_update(parser_hevc, &(mp4ff_dsi->vps_lst), 0, nal, &sample->flags, mp4ff_dsi->dsi_in_mdat);
                     if (mp4ff_dsi->dsi_in_mdat)
                     {
                         keep_nal = TRUE;
@@ -1158,7 +1171,7 @@ parser_hevc_get_sample(parser_handle_t parser, mp4_sample_handle_t sample)
                         mp4ff_dsi = (mp4_dsi_hevc_handle_t)dsi_hevc;
                     }
 
-                    keep_nal = ps_list_update(parser_hevc, &(mp4ff_dsi->sps_lst), _context->i_curr_sps_idx, nal, &sample->flags);
+                    keep_nal = ps_list_update(parser_hevc, &(mp4ff_dsi->sps_lst), _context->i_curr_sps_idx, nal, &sample->flags, mp4ff_dsi->dsi_in_mdat);
                     if (mp4ff_dsi->dsi_in_mdat)
                     {
                         keep_nal = TRUE;
@@ -1191,7 +1204,7 @@ parser_hevc_get_sample(parser_handle_t parser, mp4_sample_handle_t sample)
                             mp4ff_dsi = (mp4_dsi_hevc_handle_t)dsi_hevc;
                         }
 
-                        keep_nal = ps_list_update(parser_hevc, &(mp4ff_dsi->pps_lst), _context->i_curr_pps_idx, nal, &sample->flags);
+                        keep_nal = ps_list_update(parser_hevc, &(mp4ff_dsi->pps_lst), _context->i_curr_pps_idx, nal, &sample->flags,mp4ff_dsi->dsi_in_mdat);
                     if (mp4ff_dsi->dsi_in_mdat)
                     {
                         keep_nal = TRUE;
@@ -1216,9 +1229,17 @@ parser_hevc_get_sample(parser_handle_t parser, mp4_sample_handle_t sample)
             case NAL_UNIT_SUFFIX_SEI:
                 keep_nal  = TRUE;
                 break;
-            /** DolbyVision RPU NALs */
-            case NAL_UNIT_UNSPECIFIED_62: 
-                parser->dv_rpu_nal_flag = 1;
+
+            case NAL_UNIT_UNSPECIFIED_62:
+                /** Dolby Vision RPU NALs found, but the user don't want to signal; Just mux it to comment mp4 */
+                if (parser->ext_timing.ext_dv_profile == 0xff)
+                {
+                    parser->dv_rpu_nal_flag = 0;
+                }
+                else
+                {
+                    parser->dv_rpu_nal_flag = 1;
+                }
                 keep_nal  = TRUE;
                 break;
             /** DolbyVision EL NALs */
@@ -1255,17 +1276,17 @@ parser_hevc_get_sample(parser_handle_t parser, mp4_sample_handle_t sample)
                         if (nalu_el.e_nalu_type == NAL_UNIT_VPS)
                         {
                             decode_vps( _context_el, &nalu_el);
-                            ps_list_update(parser_hevc, &(dsi->vps_lst), 0, nal, NULL);
+                            ps_list_update(parser_hevc, &(dsi->vps_lst), 0, nal, NULL, mp4ff_dsi->dsi_in_mdat);
                         }
                         else if (nalu_el.e_nalu_type == NAL_UNIT_SPS)
                         {
                             decode_sps( _context_el, &nalu_el);
-                            ps_list_update(parser_hevc, &(dsi->sps_lst), 0, nal, NULL);
+                            ps_list_update(parser_hevc, &(dsi->sps_lst), 0, nal, NULL, mp4ff_dsi->dsi_in_mdat);
                         }
                         else if (nalu_el.e_nalu_type == NAL_UNIT_PPS)
                         {
                             decode_pps( _context_el, &nalu_el);
-                            ps_list_update(parser_hevc, &(dsi->pps_lst), 0, nal, NULL);
+                            ps_list_update(parser_hevc, &(dsi->pps_lst), 0, nal, NULL, mp4ff_dsi->dsi_in_mdat);
                         }
 
                         nal->nal_buf -= 2;
@@ -1292,6 +1313,11 @@ parser_hevc_get_sample(parser_handle_t parser, mp4_sample_handle_t sample)
             case NAL_UNIT_CODED_SLICE_RASL_N:
                 nal_vcl_flag = TRUE;
                 gop_decode_slice( _context, &nalu );
+                break;
+
+            case NAL_UNIT_EOS:
+            case NAL_UNIT_EOB:
+                 keep_nal  = TRUE;
                 break;
 
             default:
@@ -1358,6 +1384,7 @@ parser_hevc_get_sample(parser_handle_t parser, mp4_sample_handle_t sample)
         if (nal_vcl_flag && !pic_type_setting_flag)
         {
             if (   nalu.e_nalu_type == NAL_UNIT_CODED_SLICE_IDR_N_LP
+                || nalu.e_nalu_type == NAL_UNIT_CODED_SLICE_CRA
                 || nalu.e_nalu_type == NAL_UNIT_CODED_SLICE_BLA_N_LP ) 
             {
                 sample->pic_type         = 1;
@@ -1366,16 +1393,15 @@ parser_hevc_get_sample(parser_handle_t parser, mp4_sample_handle_t sample)
                 sample->flags |= SAMPLE_SYNC;
             }
             else if (   nalu.e_nalu_type == NAL_UNIT_CODED_SLICE_IDR_W_RADL
-                     || nalu.e_nalu_type == NAL_UNIT_CODED_SLICE_BLA_W_RADL )
+                     || nalu.e_nalu_type == NAL_UNIT_CODED_SLICE_BLA_W_RADL
+                     || nalu.e_nalu_type == NAL_UNIT_CODED_SLICE_BLA_W_LP )
             {
                 sample->pic_type         = 2;
                 sample->frame_type       = 0;
                 sample->dependency_level = 0x01;
                 sample->flags |= SAMPLE_SYNC;
             }
-            else if (   nalu.e_nalu_type == NAL_UNIT_CODED_SLICE_BLA_W_LP
-                     || nalu.e_nalu_type == NAL_UNIT_CODED_SLICE_CRA
-                     || nalu.e_nalu_type == NAL_UNIT_CODED_SLICE_TRAIL_R)
+            else if ( nalu.e_nalu_type == NAL_UNIT_CODED_SLICE_TRAIL_R )
             {
                 sample->pic_type         = 3;
                 sample->frame_type       = 1;
@@ -1516,6 +1542,7 @@ parser_hevc_get_sample(parser_handle_t parser, mp4_sample_handle_t sample)
             dsi_update(dsi, _context_el);
         }
 
+        sample->flags |= SAMPLE_NEW_SD;
     }
 
     /**** timing */
@@ -1780,7 +1807,8 @@ parser_hevc_get_mp4_cfg(parser_handle_t parser, uint8_t **buf, size_t *buf_len)
     sink_write_bits(snk, 3, dsi->numTemporalLayers);
     sink_write_bits(snk, 1, dsi->temporalIdNested);
     sink_write_bits(snk, 2, dsi->lengthSizeMinusOne);
-
+    
+    dsi->numOfArrays = 0;
     if(list_get_entry_num(dsi->vps_lst))
         dsi->numOfArrays++;
     if(list_get_entry_num(dsi->sps_lst))
@@ -1788,7 +1816,7 @@ parser_hevc_get_mp4_cfg(parser_handle_t parser, uint8_t **buf, size_t *buf_len)
     if(list_get_entry_num(dsi->pps_lst))
         dsi->numOfArrays++;
 
-    if(dsi->dsi_in_mdat) /** sample entry name "hev1"*/
+    if(dsi->dsi_in_mdat && (!parser->ext_timing.ps_present_flag)) /** sample entry name "hev1"*/
     {
         sink_write_u8(snk, 0); /** set numOfArrays = 0; */
     }
@@ -1963,6 +1991,7 @@ parser_hevc_get_mp4_cfg(parser_handle_t parser, uint8_t **buf, size_t *buf_len)
         sink_write_bits(snk, 1, dsi->temporalIdNested);
         sink_write_bits(snk, 2, dsi->lengthSizeMinusOne);
 
+        dsi->numOfArrays = 0;
         if(list_get_entry_num(dsi->vps_lst))
             dsi->numOfArrays++;
         if(list_get_entry_num(dsi->sps_lst))
@@ -1970,43 +1999,50 @@ parser_hevc_get_mp4_cfg(parser_handle_t parser, uint8_t **buf, size_t *buf_len)
         if(list_get_entry_num(dsi->pps_lst))
             dsi->numOfArrays++;
 
-        sink_write_u8(snk, dsi->numOfArrays);
-        if(list_get_entry_num(dsi->vps_lst)) {
-            sink_write_bits(snk, 1, 1);                                         /** array_completeness = 1; because our name "hvc1" */
-            sink_write_bits(snk, 1, 0);                                         /** reserved = 0; */
-            sink_write_bits(snk, 6, NAL_UNIT_VPS);                              /** VideoParameterSet type */
-            sink_write_u16(snk, (uint16_t)list_get_entry_num(dsi->vps_lst));    /** numOfVideoParameterSets */
-            it_init(it, dsi->vps_lst);
-            while ((entry = it_get_entry(it)))
-            {
-                sink_write_u16(snk, (uint16_t)entry->size);                    /** VideoParameterSetLength */
-                snk->write(snk, entry->data, entry->size);                     /** VideoParameterSetNALUnit */
-            }
+        if (IS_FOURCC_EQUAL(parser->dsi_name,"hev1"))
+        {
+            sink_write_u8(snk, 0);
         }
-
-        if(list_get_entry_num(dsi->sps_lst)) {
-            sink_write_bits(snk, 1, 1);                                        /** array_completeness = 1; because our name "hvc1" */
-            sink_write_bits(snk, 1, 0);                                        /** reserved = 0; */
-            sink_write_bits(snk, 6, NAL_UNIT_SPS);                             /** SequenceParameterSet type */
-            sink_write_u16(snk, (uint16_t)list_get_entry_num(dsi->sps_lst));   /** numOfSequenceParameterSets */
-            it_init(it, dsi->sps_lst);
-            while ((entry = it_get_entry(it)))
-            {
-                sink_write_u16(snk, (uint16_t)entry->size);                    /** sequenceParameterSetLength */
-                snk->write(snk, entry->data, entry->size);                     /** sequenceParameterSetNALUnit */
+        else
+        {
+            sink_write_u8(snk, dsi->numOfArrays);
+            if(list_get_entry_num(dsi->vps_lst)) {
+                sink_write_bits(snk, 1, 1);                             /* array_completeness = 1; because our name "hvc1" */
+                sink_write_bits(snk, 1, 0);                             /* reserved = 0; */
+                sink_write_bits(snk, 6, NAL_UNIT_VPS);                     /* VideoParameterSet type */
+                sink_write_u16(snk, (uint16_t)list_get_entry_num(dsi->vps_lst));  /* numOfVideoParameterSets */
+                it_init(it, dsi->vps_lst);
+                while ((entry = it_get_entry(it)))
+                {
+                    sink_write_u16(snk, (uint16_t)entry->size);         /* VideoParameterSetLength */
+                    snk->write(snk, entry->data, entry->size);          /* VideoParameterSetNALUnit */
+                }
             }
-        }
 
-        if(list_get_entry_num(dsi->pps_lst)) {
-            sink_write_bits(snk, 1, 1);                                        /** array_completeness = 1; because our name "hvc1" */
-            sink_write_bits(snk, 1, 0);                                        /** reserved = 0; */
-            sink_write_bits(snk, 6, NAL_UNIT_PPS);                             /** PictureParameterSet type */
-            sink_write_u16(snk, (uint16_t)list_get_entry_num(dsi->pps_lst));   /** numOfPictureParameterSets */
-            it_init(it, dsi->pps_lst);
-            while ((entry = it_get_entry(it)))
-            {
-                sink_write_u16(snk, (uint16_t)entry->size);                    /** PictureParameterSetLength */
-                snk->write(snk, entry->data, entry->size);                     /** PictureParameterSetNALUnit */
+            if(list_get_entry_num(dsi->sps_lst)) {
+                sink_write_bits(snk, 1, 1);                                        /** array_completeness = 1; because our name "hvc1" */
+                sink_write_bits(snk, 1, 0);                                        /** reserved = 0; */
+                sink_write_bits(snk, 6, NAL_UNIT_SPS);                             /** SequenceParameterSet type */
+                sink_write_u16(snk, (uint16_t)list_get_entry_num(dsi->sps_lst));   /** numOfSequenceParameterSets */
+                it_init(it, dsi->sps_lst);
+                while ((entry = it_get_entry(it)))
+                {
+                    sink_write_u16(snk, (uint16_t)entry->size);                    /** sequenceParameterSetLength */
+                    snk->write(snk, entry->data, entry->size);                     /** sequenceParameterSetNALUnit */
+                }
+            }
+
+            if(list_get_entry_num(dsi->pps_lst)) {
+                sink_write_bits(snk, 1, 1);                                        /** array_completeness = 1; because our name "hvc1" */
+                sink_write_bits(snk, 1, 0);                                        /** reserved = 0; */
+                sink_write_bits(snk, 6, NAL_UNIT_PPS);                             /** PictureParameterSet type */
+                sink_write_u16(snk, (uint16_t)list_get_entry_num(dsi->pps_lst));   /** numOfPictureParameterSets */
+                it_init(it, dsi->pps_lst);
+                while ((entry = it_get_entry(it)))
+                {
+                    sink_write_u16(snk, (uint16_t)entry->size);                    /** PictureParameterSetLength */
+                    snk->write(snk, entry->data, entry->size);                     /** PictureParameterSetNALUnit */
+                }
             }
         }
 
@@ -2019,9 +2055,7 @@ parser_hevc_get_mp4_cfg(parser_handle_t parser, uint8_t **buf, size_t *buf_len)
 }
 
 
-
-
-static int
+static int32_t
 parser_hevc_get_param_ex(parser_handle_t parser, stream_param_id_t param_id, int32_t param_idx, void *param)
 {
     /** Currently we have not implement it. */

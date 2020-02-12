@@ -864,7 +864,7 @@ parser_dd_get_sample(parser_handle_t parser, mp4_sample_handle_t sample)
                 {
                     msglog(NULL, MSGLOG_INFO, "first AC3 frame is %s\n", (parser_dd->isLE) ? "LE" : "BE");
                     parser_dd->bit_rate = parser_dd->subs_ind[AC3_SUBSTREAMID].data_rate * 1000;
-                    parser_dd->nfchans_prg[AC3_SUBSTREAMID] =
+                    parser_dd->channelcount = parser_dd->nfchans_prg[AC3_SUBSTREAMID] =
                         get_channel_num(parser_dd->channel_flags_prg[AC3_SUBSTREAMID]);
                 }
                 /*else, already know every thing */
@@ -893,7 +893,7 @@ parser_dd_get_sample(parser_handle_t parser, mp4_sample_handle_t sample)
                     }
 
                     parser_dd->bit_rate += substrm->data_rate * 1000;
-                    parser_dd->nfchans_prg[parser_dd->last_indep] =
+                    parser_dd->channelcount = parser_dd->nfchans_prg[parser_dd->last_indep] =
                         get_channel_num(parser_dd->channel_flags_prg[parser_dd->last_indep]);
                         /* channel_flags_prg updated as each indep/dep substream parsed */
                 }
@@ -1205,7 +1205,7 @@ parser_dd_get_sample_push(parser_handle_t parser, SEsData_t *psEsd, SSs_t *psSf,
 
                         msglog(NULL, MSGLOG_INFO, "first AC3 frame is %s\n", (psSf->u8FlagsLidx & LE_FLAG) ? "LE" : "BE");
                         parser_dd->bit_rate = parser_dd->subs_ind[AC3_SUBSTREAMID].data_rate * 1000;
-                        parser_dd->nfchans_prg[AC3_SUBSTREAMID] =
+                        parser_dd->channelcount = parser_dd->nfchans_prg[AC3_SUBSTREAMID] =
                             get_channel_num(parser_dd->channel_flags_prg[AC3_SUBSTREAMID]);
                     } /* ac3 info */
                     else
@@ -1230,7 +1230,7 @@ parser_dd_get_sample_push(parser_handle_t parser, SEsData_t *psEsd, SSs_t *psSf,
                         }
 
                         parser_dd->bit_rate += substrm->data_rate * 1000;
-                        parser_dd->nfchans_prg[parser_dd->last_indep] =
+                        parser_dd->channelcount = parser_dd->nfchans_prg[parser_dd->last_indep] =
                             get_channel_num(parser_dd->channel_flags_prg[parser_dd->last_indep]);
                         /* channel_flags_prg updated as each indep/dep substream parsed */
                     } /* ec3 info */
@@ -1391,8 +1391,9 @@ parser_ec3_get_cfg(parser_handle_t parser, uint8_t **buf, size_t *buf_len, BOOL 
         snk->set_buffer(snk, NULL, 8, 1); /* in fact 6 is enough */
     }
 
-    sink_write_bits(snk, 5, (parser_dd->bit_rate / 1000) >> 8);
-    sink_write_bits(snk, 8, (parser_dd->bit_rate / 1000) & 0xff);
+    /** for dd/ddp the bitrate should be max bitrate*/
+    sink_write_bits(snk, 5, (parser_dd->maxBitrate / 1000) >> 8);
+    sink_write_bits(snk, 8, (parser_dd->maxBitrate / 1000) & 0xff);
 
     num_indep_sub = parser_dd->num_ind_sub;
     sink_write_bits(snk, 3, num_indep_sub-1);
@@ -1456,6 +1457,8 @@ parser_ec3_get_cfg(parser_handle_t parser, uint8_t **buf, size_t *buf_len, BOOL 
             {
                 sink_write_u8(snk, pactive_stream->addbsi[1]);
             }
+
+            parser->isJoC = 1;
         }
     }
 

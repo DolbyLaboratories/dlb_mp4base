@@ -30,6 +30,7 @@
 #define __PARSER_AVC_DPB_H__
 
 #include "boolean.h"  /** BOOL */
+#include "c99_inttypes.h"
 
 #define USE_HRD_FOR_TS     1 /** use the hrd model for dts, cts*/
 #define TEST_DELTA_POC     (0 && USE_HRD_FOR_TS) /** apoc is for what it mean for when USE_HRD_FOR_TS = 0 */
@@ -43,8 +44,8 @@ void apoc_set_num_reorder_au(avc_apoc_t *p, int num_reorder_au);
 void apoc_set_max_ref_au    (avc_apoc_t *p, int num_ref_frames);
 void apoc_flush             (avc_apoc_t *p);
 void apoc_add               (avc_apoc_t *p, int poc, int is_idr);
-int  apoc_reorder_num       (avc_apoc_t *p, int doc);              /** return -1 for unknown */
-int  apoc_min_cts           (avc_apoc_t *p);                       /** in au count */
+int32_t  apoc_reorder_num   (avc_apoc_t *p, int doc);              /** return -1 for unknown */
+int32_t  apoc_min_cts       (avc_apoc_t *p);                       /** in au count */
 BOOL apoc_need_adj_cts      (avc_apoc_t *p);                       /** always return true */
 
 #if defined(_DEBUG) && TEST_DELTA_POC

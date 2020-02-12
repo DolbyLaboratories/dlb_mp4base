@@ -56,8 +56,8 @@ struct parser_ac4_t_
     uint8_t presentation_version[PRESENTATION_NUM];
     uint8_t b_add_emdf_substreams[PRESENTATION_NUM];
     uint8_t mdcompat[PRESENTATION_NUM];
-    uint8_t b_presentation_group_index[PRESENTATION_NUM];
-    uint8_t presentation_group_index[PRESENTATION_NUM];
+    uint8_t b_presentation_id[PRESENTATION_NUM];
+    uint16_t presentation_id[PRESENTATION_NUM];
     uint8_t frame_rate_factor[PRESENTATION_NUM];
     uint8_t dsi_frame_rate_multiply_info[PRESENTATION_NUM];
     uint8_t emdf_version[PRESENTATION_NUM];
@@ -102,6 +102,7 @@ struct parser_ac4_t_
 
     uint8_t n_substream_groups[PRESENTATION_NUM];
     uint8_t b_multi_pid[PRESENTATION_NUM];
+    uint8_t isAtmos[PRESENTATION_NUM];
 
     uint8_t total_n_substream_groups;
     uint8_t max_group_index;
@@ -111,6 +112,7 @@ struct parser_ac4_t_
     uint8_t group_index[PRESENTATION_NUM][SUBSTREAM_GROUP];
 
     uint8_t b_4_back_channels_present[SUBSTREAM_GROUP][SUBSTREAM_COUNT];
+    uint8_t b_centre_present[SUBSTREAM_GROUP][SUBSTREAM_COUNT];
     uint8_t top_channels_present[SUBSTREAM_GROUP][SUBSTREAM_COUNT];
 
     uint8_t b_substreams_present[SUBSTREAM_GROUP];
@@ -150,6 +152,7 @@ struct parser_ac4_t_
     uint8_t n_fullband_dmx_signals_minus1[SUBSTREAM_GROUP][SUBSTREAM_COUNT];
     uint8_t n_fullband_upmix_signals_minus1[SUBSTREAM_GROUP][SUBSTREAM_COUNT];
 
+    uint32_t bit_rate_mode;
 };
 typedef struct parser_ac4_t_ parser_ac4_t;
 typedef parser_ac4_t *parser_ac4_handle_t;

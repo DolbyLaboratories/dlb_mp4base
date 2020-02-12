@@ -134,6 +134,88 @@ typedef enum
     I_SLICE
 } slice_type_t;
 
+
+/// texture component type
+typedef enum
+{
+    TEXT_LUMA,            ///< luma
+    TEXT_CHROMA,          ///< chroma (U+V)
+    TEXT_CHROMA_U,        ///< chroma U
+    TEXT_CHROMA_V,        ///< chroma V
+    TEXT_ALL,             ///< Y+U+V
+    TEXT_NONE = 15
+} texture_type_t;
+
+
+/* partition shape */
+typedef enum
+{
+    SIZE_2Nx2N,           /** < symmetric motion partition,  2Nx2N */
+    SIZE_2NxN,            /** < symmetric motion partition,  2Nx N   ( 2 rows ) */
+    SIZE_Nx2N,            /** < symmetric motion partition,   Nx2N   ( 2 columns ) */
+    SIZE_NxN,             /** < symmetric motion partition,   Nx N */
+    SIZE_2NxnU,           /** < asymmetric motion partition, 2Nx( N/2) + 2Nx(3N/2) */
+    SIZE_2NxnD,           /** < asymmetric motion partition, 2Nx(3N/2) + 2Nx( N/2) */
+    SIZE_nLx2N,           /** < asymmetric motion partition, ( N/2)x2N + (3N/2)x2N */
+    SIZE_nRx2N,           /** < asymmetric motion partition, (3N/2)x2N + ( N/2)x2N */
+    
+    SIZE_nUx2N,           /** < the larger halves of the above */
+    SIZE_nDx2N,           /** < the larger halves of the above */
+    SIZE_2NxnL,           /** < the larger halves of the above */
+    SIZE_2NxnR,           /** < the larger halves of the above */
+    
+    SIZE_NONE = 15
+} partition_size_t;
+
+
+/* prediction type */
+typedef enum
+{
+    MODE_SKIP,
+    MODE_INTER,
+    MODE_INTRA,
+    MODE_NONE = 15
+} prediction_mode_t;
+
+
+typedef enum
+{
+    SCAN_DIAG = 0,         /** < up-right diagonal scan */
+    SCAN_HOR,              /** < horizontal first scan */
+    SCAN_VER               /** < vertical first scan */
+} coeff_scan_t;
+
+
+typedef enum
+{
+    REF_PIC_LIST_0 = 0,   /** < reference list 0 */
+    REF_PIC_LIST_1 = 1,   /** < reference list 1 */
+    REF_PIC_LIST_C = 2,   /** < combined reference list for uni-prediction in B-Slices */
+    REF_PIC_LIST_X = 100  /** < special mark */
+} ref_pic_list_t;
+
+
+
+typedef struct
+{
+    /** parameters for AMVP */
+    int16_t i_x[ AMVP_MAX_NUM_CANDS_MEM ];
+    int16_t i_y[ AMVP_MAX_NUM_CANDS_MEM ];
+    int8_t i_N;          /** < number of motion vector predictor candidates */
+} amvp_context_t;
+
+
+typedef enum
+{
+    /**  motion vector predictor direction used in AMVP */
+    MD_LEFT = 0,          /** < MVP of left block */
+    MD_ABOVE,             /** < MVP of above block */
+    MD_ABOVE_RIGHT,       /** < MVP of above right block */
+    MD_BELOW_LEFT,        /** < MVP of below left block */
+    MD_ABOVE_LEFT         /** < MVP of above left block */
+} mvp_dir_t;
+
+
 typedef enum
 {
     SCALING_LIST_4x4 = 0,
@@ -143,8 +225,31 @@ typedef enum
     SCALING_LIST_SIZE_NUM
 } scaling_list_size_t;
 
+
+typedef enum
+{
+    SAO_EO_LEN = 4, 
+    SAO_BO_LEN = 4,
+    SAO_MAX_BO_CLASSES = 32
+} SAO_type_len_t;
+
+typedef enum
+{
+    SAO_EO_0 = 0, 
+    SAO_EO_1,
+    SAO_EO_2, 
+    SAO_EO_3,
+    SAO_BO,
+    MAX_NUM_SAO_TYPE
+} SAO_type_t;
+
+
+#define SAO_MAX_DEPTH                 4
 #define SAO_BO_BITS                   5
 #define SAO_LUMA_GROUP_NUM            (1<<SAO_BO_BITS)
+#define MAX_NUM_SAO_OFFSETS           4
+#define MAX_NUM_SAO_CLASS             33
+
 
 typedef struct  
 {
@@ -458,6 +563,9 @@ typedef struct
     int16_t i_pic_conf_win_top_offset;
     int16_t i_pic_conf_win_bottom_offset;
 
+    int16_t i_pic_luma_width_dis;
+    int16_t i_pic_luma_height_dis;
+
     int8_t i_bit_depth_luma;
     int8_t i_bit_depth_chroma;
     int8_t i_log2_max_pic_order_cnt_lsb;
@@ -657,10 +765,49 @@ typedef struct
 
 } vui_t;
 
+typedef struct  
+{
+    int32_t i_active_vps_id; 
+    bool b_active_sps_id_present;
+    int32_t i_active_sps_id; 
+    bool b_active_param_set_sei_extension; 
+} sei_parameter_sets_t;
+
+typedef struct  
+{
+    int16_t i_seqParameterSetId;
+    bool b_altCpbParamsPresentFlag;
+    int16_t ai_initialCpbRemovalDelay         [ MAX_CPB_CNT ][ 2 ];
+    int16_t ai_initialCpbRemovalDelayOffset   [ MAX_CPB_CNT ][ 2 ];
+    int16_t ai_initialAltCpbRemovalDelay      [ MAX_CPB_CNT ][ 2 ];
+    int16_t ai_initialAltCpbRemovalDelayOffset[ MAX_CPB_CNT ][ 2 ];
+} sei_buffering_period_t;
+
 typedef struct
 {
-    /** Explicit weighted prediction parameters parsed in slice header, */
-    /** or implicit weighted prediction parameters (8 bits depth values). */
+    int32_t i_cpb_removal_delay;
+    int32_t i_dpb_output_delay;
+    int32_t i_num_decoding_units_minus1;
+    bool  b_du_common_cpb_removal_delay;
+    int32_t i_du_common_cpb_removal_delay_minus1;
+    int32_t *pi_num_nalus_in_du_minus1;
+    int32_t *pi_du_cpb_removal_delay_minus1;
+
+} sei_picture_timing_t;
+
+typedef struct
+{
+#define QP_BITS       15
+    int32_t i_qp;
+    int32_t i_per;
+    int32_t i_rem;
+    int32_t i_bits;
+} qp_param_t;
+
+typedef struct
+{
+    /** Explicit weighted prediction parameters parsed in slice header,
+        or implicit weighted prediction parameters (8 bits depth values). */
     bool b_present;
     int32_t i_log2_weight_denom;
     int32_t i_weight;

@@ -1156,6 +1156,7 @@ void
 parser_aac_reg(void)
 {
     reg_parser_set("aac", parser_aac_create);
+    reg_parser_set("adts", parser_aac_create);
 }
 
 /*

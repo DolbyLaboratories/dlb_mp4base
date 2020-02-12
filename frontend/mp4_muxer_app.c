@@ -68,25 +68,19 @@ mp4muxer_usage(void)
                 " --mpeg4-brand <arg>                = Specifies the ISO base media file format brand in the format.\n"
                 " --mpeg4-comp-brand <arg>           = Specifies the ISO base media file format compatible brand(s), \n" 
 				"                                      in the format of a comma separated list, for example mp42,iso6,isom,msdh,dby1. \n"
-                " --output-format <arg>              = Sets the output file format or the specification to which the\n"
-                "                                      output file must conform. Valid values include 'mp4' and 'frag-mp4'. \n" 
-                "                                      'mp4' is the default value.\n"
-                " --mpeg4-max-frag-duration <arg>    = Sets the maximum fragment duration in milliseconds. \n" 
-                "                                      By default, the max duration is 2s.\n"
-                " --dv-input-es-mode <arg>           = Specifies the Dolby Vision video elementary stream input mode:\n"
-                "                                      'comb':  BL, EL, and RPU are combined into a single file;'comb' is the default mode. \n"
-                "                                      'split': BL and EL+RPU are multiplexed into two separated elementary stream files.\n" 
+                " --output-format <arg>              = Sets the output file format or the specification to which the\n"
+                "                                      output file must conform. Valid values include 'mp4' and 'frag-mp4'. \n" 
+                "                                      'mp4' is the default value.\n"
+                " --mpeg4-max-frag-duration <arg>    = Sets the maximum fragment duration in milliseconds. \n" 
+                "                                      By default, the max duration is 2s.\n"
                 " --dv-profile <arg>                 = Sets the Dolby Vision profile. This option is MANDATORY for \n"
                 "                                      DoVi elementary stream: Valid profile values are:\n"
-                "                                      0 - dvav.per, BL codec: AVC;    EL codec: AVC;    BL compatibility: SDR/HDR.   \n"
-                "                                      1 - dvav.pen, BL codec: AVC;    EL codec: AVC;    BL compatibility: None.      \n"
-                "                                      2 - dvhe.der, BL codec: HEVC8;  EL codec: HEVC8;  BL compatibility: SDR/HDR.   \n"
-                "                                      3 - dvhe.den, BL codec: HEVC8;  EL codec: HEVC8;  BL compatibility: None.      \n"
-                "                                      4 - dvhe.dtr, BL codec: HEVC10; EL codec: HEVC10; BL compatibility: SDR/HDR.   \n"
-                "                                      5 - dvhe.stn, BL codec: HEVC10; EL codec: N/A;    BL compatibility: None.      \n"
-                "                                      6 - dvhe.dth, BL codec: HEVC10; EL codec: HEVC10; BL compatibility: CTA HDR10. \n"
-                "                                      7 - dvhe.dtb, BL codec: HEVC10; EL codec: HEVC10; BL compatibility: Blue-ray HDR10. \n"
-                "                                     >7 - Reserved \n"
+                "                                      4 - dvhe.04, BL codec: HEVC10; EL codec: HEVC10; BL compatibility: SDR/HDR.   \n"
+                "                                      5 - dvhe.05, BL codec: HEVC10; EL codec: N/A;    BL compatibility: None.      \n"
+                "                                      7 - dvhe.07, BL codec: HEVC10; EL codec: HEVC10; BL compatibility: Blue-ray HDR10. \n"
+                "                                      8 - dvhe.08, BL codec: HEVC10; EL codec: N/A;    BL compatibility: SDR/HDR.   \n"
+				"                                      9 - dvav.09, BL codec: AVC;    EL codec: N/A;    BL compatibility: SDR/HDR.   \n"
+				" --dv-bl-compatible-id <arg>        = Sets the Dolby Vision base layer compatible ID, if the profile index is 8, this option must be set by user.\n"
                 "\n\n");
 
     msglog(NULL, MSGLOG_CRIT, "mp4muxer usage examples: \n"
@@ -95,30 +89,14 @@ mp4muxer_usage(void)
            "   mp4muxer -o output.mp4 -i audio.ec3 --mpeg4-comp-brand mp42,iso6,isom,msdh,dby1\n\n"
            "To multiplex AC-4 audio and H.264 video:\n"
            "   mp4muxer -o output.mp4 -i audio.ac4 -i video.h264 --mpeg4-comp-brand mp42,iso6,isom,msdh,dby1\n\n"
-           "To multiplex Dolby vision BL+EL+RPU into a general(non-fragmented) single-track mp4:\n"
+           "To multiplex Dolby vision BL+EL+RPU into a .mp4 file :\n"
            "   mp4muxer -i ves_bl_el_rpu.264 -o single_track_output.mp4 --dv-profile 0 --mpeg4-comp-brand mp42,iso6,isom,msdh,dby1 --overwrite \n\n"
 
-           "To multiplex Dolby vision BL file and EL+RPU file into a dual-track .mp4 file with EC-3 audio track:\n"
-           "   mp4muxer -i ves_bl.265 -i ves_el_rpu.265 --dv-input-es-mode split -i audio.ec3 -o dual_track_output.mp4 \n" 
-           "            -dv-profile 2 --mpeg4-comp-brand mp42,iso6,isom,msdh,dby1 --overwrite \n"
-           "   Note: The audio input must not separate the BL and EL input. \n\n"
+           "To multiplex Dolby vision BL+EL+RPU file into a .mp4 file with EC-3 audio track:\n"
+           "   mp4muxer -i ves_bl_el_rpu.265 -i audio.ec3 -o output.mp4 --dv-profile 8 \n" 
+           "            --dv-bl-compatible-id 2 --mpeg4-comp-brand mp42,iso6,isom,msdh,dby1 --overwrite \n"
+           "   Note: For the Dolby vision profile 8, dv-bl-compatible-id is necessary. \n\n"
 
-           "To multiplex Dolby Vision into fragmented mp4 file, when the input is a single file containing \n"
-           "combined BL, EL, and RPU, and the output is one .mp4 file:  \n"
-           "   mp4muxer -i ves_bl_el_rpu.264 -o frag_mp4_output.mp4 --output-format frag-mp4 --mpeg4-max-frag-duration 2200 \n"
-           "            --dv-profile 0 --mpeg4-comp-brand mp42,iso6,isom,msdh,dby1 --overwrite \n"
-           "   Note: For fragmented mp4, the default fragment duration is 2s. And each fragment must start with the Random \n"
-           "         Access Point (for H.264/H.265, it must be an IDR). \n"
-           "         If the distance between two contiguous RAPs is longer than 2s, it's impossible to create fragment\n"
-           "         correctly by using the default max fragment duration(2s).\n"
-           "         In this case, the command line must be used and the value be bigger than the max RAP distance. \n"
-
-           "To multiplex Dolby vision into fragmented mp4 file, when the input contains two files with one file \n"
-           "for BL and the other for EL+RPU, and the output is one .mp4 file:  \n"
-           "   mp4muxer -i ves_bl.264 -i ves_el_rpu.264 --dv-input-es-mode split -o frag_mp4_output.mp4 --output-format frag-mp4 \n"
-           "            --mpeg4-max-frag-duration 2500 --dv-profile 0 --mpeg4-comp-brand mp42,iso6,isom,msdh,dby1 --overwrite \n"
-           "   Note1: The BL elementary stream file must be put in the first place followed by the EL+RPU file. \n"
-           "   Note2: The output file have two tracks: one BL track and one EL track.  \n\n"
            );
 }
 
@@ -290,29 +268,36 @@ parse_cli(ema_mp4_ctrl_handle_t handle, int32_t argc, int8_t **argv)
         {
             ret = ema_mp4_mux_set_cbrand(handle, *argv);
         }
-        else if (!OSAL_STRCASECMP(opt, "--output-format"))
-        {
-            ret = ema_mp4_mux_set_output_format(handle, *argv);
-            if (ret != EMA_MP4_MUXED_OK)
-            {
-                msglog(NULL, MSGLOG_ERR, 
-                       "Error parsing command line: Unknown output format: %s \n\n",*argv);
-            }
+		else if (!OSAL_STRCASECMP(opt, "--output-format"))
+        {
+            ret = ema_mp4_mux_set_output_format(handle, *argv);
+            if (ret != EMA_MP4_MUXED_OK)
+            {
+                msglog(NULL, MSGLOG_ERR, 
+                       "Error parsing command line: Unknown output format: %s \n\n",*argv);
+            }
         }
-        else if (!OSAL_STRCASECMP(opt, "--mpeg4-max-frag-duration"))
-        {
-            OSAL_SSCANF(*argv, "%u", &ua);
-            ret = ema_mp4_mux_set_max_duration(handle, ua);
+        else if (!OSAL_STRCASECMP(opt, "--mpeg4-max-frag-duration"))
+        {
+            OSAL_SSCANF(*argv, "%u", &ua);
+            ret = ema_mp4_mux_set_max_duration(handle, ua);
         }
-        else if (!OSAL_STRCASECMP(opt, "--dv-input-es-mode"))
-        {
-            ret = ema_mp4_mux_set_dv_es_mode(handle, *argv);
-        }
-        else if (!OSAL_STRCASECMP(opt, "--dv-profile"))
+		else if (!OSAL_STRCASECMP(opt, "--dv-profile"))
         {
             OSAL_SSCANF(*argv, "%u", &ua);
             ret = ema_mp4_mux_set_dv_profile(handle, (int)ua);
+			if (ret == EMA_MP4_MUXED_PARAM_ERR){
+			   msglog(NULL, MSGLOG_ERR, 
+                "ERROR: For dolby vision deprecated profiles 0, 1, 2, 3 and 6, no longer supported.\n");
+			   return EMA_MP4_MUXED_PARAM_ERR;
+			}
         }
+		else if (!OSAL_STRCASECMP(opt, "--dv-bl-compatible-id"))
+        {
+            OSAL_SSCANF(*argv, "%u", &ua);
+            ret = ema_mp4_mux_set_dv_bl_compatible_id(handle, (int)ua);
+        }
+
         else
         {
             msglog(NULL, MSGLOG_ERR, 
@@ -380,6 +365,10 @@ main(int argc, char **argv)
     CHECK( ema_mp4_mux_start(ema_handle) );
 
 cleanup:
+	if (err != 0)
+	{
+	   err = 1;
+	}
     /**** clean up. parser and mux already done and their resource released */
     if (ema_handle)
     {

@@ -291,6 +291,15 @@ uint32_t ema_mp4_mux_set_dv_es_mode(ema_mp4_ctrl_handle_t handle, const int8_t *
  */
 uint32_t ema_mp4_mux_set_dv_profile(ema_mp4_ctrl_handle_t handle, int32_t profile);
 
+/** \brief  Sets the DoVi compatible id value
+ *
+ * \param handle: the multiplexer handle returned by the ema_mp4_mux_create()
+ * \param compatid: A value of 0-9. Refer to the Dolby Vision Profiles Levels 
+ *                 specification for detailed information.
+ * \return EMA_MP4_MUXED_...
+ */
+uint32_t ema_mp4_mux_set_dv_compatible_id(ema_mp4_ctrl_handle_t handle, int32_t compatible_id);
+
 #ifdef __cplusplus
 }
 #endif

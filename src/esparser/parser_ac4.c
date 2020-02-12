@@ -40,7 +40,7 @@
 /** Based on Table 79 and Table A.27 */
 static const uint32_t chmode_2_channel_mask[16] = {
     0x00002, 0x00001, 0x00003, 0x00007, 0x00047, 0x0000f, 0x0004f, 0x20007,  /* 7.0:3/4/0 and 7.1:3/4/1  (Lrs, Rrs) == (Lb, Rb) */
-    0x20047, 0x40007, 0x40047, 0x0001f, 0x0003f, 0x1001f, 0x1003f, 0x2ff32   
+    0x20047, 0x40007, 0x40047, 0x0003f, 0x0007f, 0x1003f, 0x1007f, 0x2ff7f   
 };
 
 static const uint8_t superset_channel_mode[16][16] = {
@@ -62,8 +62,8 @@ static const uint8_t superset_channel_mode[16][16] = {
     {15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15}
 };
 
-static int
-superset(int foo, int bar)
+static int32_t
+superset(int32_t foo, int32_t bar)
 {
     if ((foo == -1) || (foo > 15))
         return bar;
@@ -74,15 +74,117 @@ superset(int foo, int bar)
     return superset_channel_mode[foo][bar];
 }
 
-static int
-generate_presentation_ch_mode(parser_ac4_handle_t parser_ac4, int presentation_idx)
+static void
+generate_presentation_ch_present(parser_ac4_handle_t parser_ac4, int32_t presentation_idx, int32_t *b_4_back_ch, int32_t *b_centre, int32_t *top_ch)
 {
-    int pres_ch_mode = -1;
-    int b_obj_or_ajoc = 0;
-    int is_ac4_substream = 1; 
-    int sg, s;
-    int i;
-    int n_substreams; 
+    int32_t sg, s;
+    int32_t i;
+    int32_t n_substreams; 
+
+    for (sg = 0; sg < parser_ac4->total_n_substream_groups; sg++) { 
+        for (i = 0; i < 3; i++)
+        {
+            if (sg == parser_ac4->group_index[presentation_idx][i])
+                break;
+            
+        }
+        
+        n_substreams = (char)((char)(parser_ac4->n_lf_substreams_minus2[sg]) + 2);
+        for (s = 0; s < n_substreams; s++) {
+            if(*b_4_back_ch < parser_ac4->b_4_back_channels_present[sg][s]) {
+                *b_4_back_ch = parser_ac4->b_4_back_channels_present[sg][s];
+            }
+            if(*b_centre < parser_ac4->b_centre_present[sg][s]) {
+                *b_centre = parser_ac4->b_centre_present[sg][s];
+            }
+            if(*top_ch < parser_ac4->top_channels_present[sg][s]) {
+                *top_ch = parser_ac4->top_channels_present[sg][s];
+            }
+        }
+    }
+
+}
+
+static int32_t
+generate_real_channel_mask(parser_ac4_handle_t parser_ac4, int32_t presentation_idx, int32_t sg_idx, int32_t substream_idx)
+{
+    int32_t b_4_back_channels = 0;
+    int32_t b_centre = 0;
+    int32_t top_channels = 0;
+    int32_t real_mask = 0;
+    int32_t need_change = 0;
+
+    if (presentation_idx != -1)
+    {
+        generate_presentation_ch_present(parser_ac4, presentation_idx, &b_4_back_channels, &b_centre, &top_channels);
+
+        if((parser_ac4->pres_ch_mode[presentation_idx] > 16) || (parser_ac4->pres_ch_mode[presentation_idx] < 0))
+        {
+            return -1;
+        }
+
+        real_mask = chmode_2_channel_mask[parser_ac4->pres_ch_mode[presentation_idx]];
+        if (parser_ac4->pres_ch_mode[presentation_idx] == 11 || 
+            parser_ac4->pres_ch_mode[presentation_idx] == 12 ||
+            parser_ac4->pres_ch_mode[presentation_idx] == 13 ||
+            parser_ac4->pres_ch_mode[presentation_idx] == 14 )
+            {
+                need_change = 1;
+            }
+    }
+    else
+    {
+        b_4_back_channels = parser_ac4->b_4_back_channels_present[sg_idx][substream_idx];
+        b_centre = parser_ac4->b_centre_present[sg_idx][substream_idx];
+        top_channels = parser_ac4->top_channels_present[sg_idx][substream_idx];
+
+        real_mask = chmode_2_channel_mask[parser_ac4->group_substream_ch_mode[sg_idx][substream_idx]];
+        if (parser_ac4->group_substream_ch_mode[sg_idx][substream_idx] == 11 || 
+            parser_ac4->group_substream_ch_mode[sg_idx][substream_idx] == 12 ||
+            parser_ac4->group_substream_ch_mode[sg_idx][substream_idx] == 13 ||
+            parser_ac4->group_substream_ch_mode[sg_idx][substream_idx] == 14 )
+            {
+                need_change = 1;
+            }
+    }
+
+    if (need_change)
+    {
+        if (!b_centre)
+        {
+            real_mask = real_mask & 0xfffffffd;
+        }
+        if (!b_4_back_channels)
+        {
+            real_mask = real_mask & 0xfffffff7;
+        }
+
+        /* AC4 spe: Table 81: top_channels_present need to be update;
+        Current logic follow: G.3.1 The AC-4 audio channel configuration scheme
+        For a stream with an 3/2/2 (5.1.2) immersive audio channel configuration using loudspeakers L, R, C, Ls, Rs, TL, TR, LFE, the value is 0000C7*/
+        if ((top_channels == 1) || (top_channels == 2))
+        {
+            real_mask = (real_mask & 0xffffff0f) | (0xc << 4) | (real_mask & 0xf);
+        }
+        else if (top_channels == 0)
+        {
+            real_mask = (real_mask & 0xffffff0f) | (0x4 << 4) | (real_mask & 0xf);
+        }
+    }
+
+    return real_mask;
+}
+
+
+static int32_t
+generate_presentation_ch_mode(parser_ac4_handle_t parser_ac4, int32_t presentation_idx)
+{
+    int32_t pres_ch_mode = -1;
+    int32_t b_obj_or_ajoc = 0;
+    int32_t is_ac4_substream = 1; 
+    int32_t sg, s;
+    int32_t i;
+    int32_t n_substreams; 
 
     for (sg = 0; sg < parser_ac4->total_n_substream_groups; sg++) {
         for (i = 0; i < 3; i++)
@@ -98,7 +200,7 @@ generate_presentation_ch_mode(parser_ac4_handle_t parser_ac4, int presentation_i
         for (s = 0; s < n_substreams; s++) {
             if (is_ac4_substream) {
                 if (parser_ac4->b_channel_coded[sg]) {
-                    int ch_mode = parser_ac4->group_substream_ch_mode[sg][s];
+                    int32_t ch_mode = parser_ac4->group_substream_ch_mode[sg][s];
                     pres_ch_mode = superset(pres_ch_mode, ch_mode);
                 } else {
                     b_obj_or_ajoc = 1;
@@ -107,19 +209,24 @@ generate_presentation_ch_mode(parser_ac4_handle_t parser_ac4, int presentation_i
         }
     }
 
+    if (((pres_ch_mode == 5) || (pres_ch_mode == 6)) && (parser_ac4->presentation_version[presentation_idx] == 2))
+    {
+        pres_ch_mode = 1;
+    }
+
     return (b_obj_or_ajoc ? -1 : pres_ch_mode);
 }
 
-static int
-generate_presentation_ch_mode_core(parser_ac4_handle_t parser_ac4, int presentation_idx)
+static int32_t
+generate_presentation_ch_mode_core(parser_ac4_handle_t parser_ac4, int32_t presentation_idx)
 {
-    int pres_ch_mode = -1;
-    int b_obj_or_ajoc = 0;
-    int is_ac4_substream = 1;
-    int sg, s;
-    int i;
-    int n_substreams;
-    int ch_mode_core = -1;
+    int32_t pres_ch_mode = -1;
+    int32_t b_obj_or_ajoc = 0;
+    int32_t is_ac4_substream = 1;
+    int32_t sg, s;
+    int32_t i;
+    int32_t n_substreams;
+    int32_t ch_mode_core = -1;
 
     for (sg = 0; sg < parser_ac4->total_n_substream_groups; sg++) { 
         for (i = 0; i < 3; i++)
@@ -162,7 +269,7 @@ generate_presentation_ch_mode_core(parser_ac4_handle_t parser_ac4, int presentat
     return (b_obj_or_ajoc ? -1 : pres_ch_mode);
 }
 
-static int /** @return 0: no sync found, 1: sync found with CRC on, 2: sync found with CRC off */
+static int32_t /** @return 0: no sync found, 1: sync found with CRC on, 2: sync found with CRC off */
 parser_ac4_get_sync(parser_ac4_handle_t parser_ac4, bbio_handle_t bs)
 {
     parser_ac4;
@@ -196,11 +303,11 @@ parser_ac4_get_sync(parser_ac4_handle_t parser_ac4, bbio_handle_t bs)
     return 0;
 }
 
-static int
+static int32_t
 variable_bits(uint32_t n_bits, bbio_handle_t bs)
 {
-    int value = 0;
-    int b_read_more = 0;
+    int32_t value = 0;
+    int32_t b_read_more = 0;
 
     do {
         value += (uint8_t)src_read_bits(bs, n_bits);
@@ -225,7 +332,7 @@ presentation_version(bbio_handle_t bs)
 }
 
 static uint32_t /* return value is dsi_frame_rate_multiply_info as specified page 191 Table E8.6 */
-frame_rate_multiply_info(parser_ac4_handle_t parser_ac4, bbio_handle_t bs, int idx)
+frame_rate_multiply_info(parser_ac4_handle_t parser_ac4, bbio_handle_t bs, int32_t idx)
 {
     uint32_t value = 0;
 
@@ -272,7 +379,7 @@ frame_rate_multiply_info(parser_ac4_handle_t parser_ac4, bbio_handle_t bs, int i
 }
 
 static uint32_t /* return value is dsi_frame_rate_fractions_info as specified Table E.10.7 */
-frame_rate_fractions_info(parser_ac4_handle_t parser_ac4, bbio_handle_t bs, int idx) /* 4.3.3.5.3 Table 86: frame_rate_factor*/
+frame_rate_fractions_info(parser_ac4_handle_t parser_ac4, bbio_handle_t bs, int32_t idx) /* 4.3.3.5.3 Table 86: frame_rate_factor*/
 {
     uint32_t value = 0;
     uint32_t frame_rate_fraction = 1;
@@ -364,7 +471,7 @@ emdf_protection(bbio_handle_t bs)
 }
 
 static void
-emdf_info(parser_ac4_handle_t parser_ac4, int present_idx)
+emdf_info(parser_ac4_handle_t parser_ac4, int32_t present_idx)
 {
     bbio_handle_t       ds         = parser_ac4->ds;
 
@@ -383,7 +490,7 @@ emdf_info(parser_ac4_handle_t parser_ac4, int present_idx)
 }
 
 static void
-add_emdf_info(parser_ac4_handle_t parser_ac4, int present_idx, int idx)
+add_emdf_info(parser_ac4_handle_t parser_ac4, int32_t present_idx, int32_t idx)
 {
     bbio_handle_t       ds         = parser_ac4->ds;
 
@@ -402,7 +509,7 @@ add_emdf_info(parser_ac4_handle_t parser_ac4, int present_idx, int idx)
 }
 
 static void
-content_type(parser_ac4_handle_t parser_ac4, int present_idx, int substream_idx )
+content_type(parser_ac4_handle_t parser_ac4, int32_t present_idx, int32_t substream_idx )
 {
     bbio_handle_t       ds         = parser_ac4->ds;
     uint32_t i;
@@ -493,7 +600,7 @@ get_ch_mode(bbio_handle_t bs)
 }
 
 static void
-ac4_substream_info_chan(parser_ac4_handle_t parser_ac4, int sg_idx, int stream_idx, int b_substreams_present)
+ac4_substream_info_chan(parser_ac4_handle_t parser_ac4, int32_t sg_idx, int32_t stream_idx, int32_t b_substreams_present)
 {
     bbio_handle_t       ds         = parser_ac4->ds;
     uint32_t tmp, i;
@@ -505,14 +612,19 @@ ac4_substream_info_chan(parser_ac4_handle_t parser_ac4, int sg_idx, int stream_i
     if (parser_ac4->group_substream_ch_mode[sg_idx][stream_idx] == 11 ||
         parser_ac4->group_substream_ch_mode[sg_idx][stream_idx] == 12 ||
         parser_ac4->group_substream_ch_mode[sg_idx][stream_idx] == 13 ||
-        parser_ac4->group_substream_ch_mode[sg_idx][stream_idx] == 14 ) {
-            parser_ac4->b_4_back_channels_present[sg_idx][stream_idx] = (uint8_t)src_read_bits(ds, 1); 
-            tmp = (uint8_t)src_read_bits(ds, 1); 
-            parser_ac4->top_channels_present[sg_idx][stream_idx] = (uint8_t)src_read_bits(ds, 2); 
+        parser_ac4->group_substream_ch_mode[sg_idx][stream_idx] == 14 ) 
+    {
+        parser_ac4->b_4_back_channels_present[sg_idx][stream_idx] = (uint8_t)src_read_bits(ds, 1);
+        parser_ac4->b_centre_present[sg_idx][stream_idx] = (uint8_t)src_read_bits(ds, 1);
+        parser_ac4->top_channels_present[sg_idx][stream_idx] = (uint8_t)src_read_bits(ds, 2);
     }
-    if (parser_ac4->fs_index == 1) {  /* 48 kHz */
+    if (parser_ac4->fs_index == 1) {  /* 48 kHz or above */
         if (src_read_bits(ds, 1)) {   /* b_sf_multiplier */
-            parser_ac4->sf_multiplier[sg_idx][stream_idx] = (uint8_t)src_read_bits(ds, 1);     /* sf_multiplier */
+            parser_ac4->sf_multiplier[sg_idx][stream_idx] = (uint8_t)src_read_bits(ds, 1) + 1;     /* sf_multiplier */
+        }
+        else
+        {
+            parser_ac4->sf_multiplier[sg_idx][stream_idx] = 0;
         }
     }
     parser_ac4->b_bitrate_info_v2[sg_idx][stream_idx] = (uint8_t)src_read_bits(ds, 1);
@@ -547,9 +659,9 @@ ac4_substream_info_chan(parser_ac4_handle_t parser_ac4, int sg_idx, int stream_i
     }
 
     {
-        int k = 0;
-        int l = 0;
-        int presentation_idx = -1;
+        int32_t k = 0;
+        int32_t l = 0;
+        int32_t presentation_idx = -1;
         
         for (k = 0; k < 32; k++) {
             for (l = 0; l < 16; l++) {
@@ -573,10 +685,33 @@ ac4_substream_info_chan(parser_ac4_handle_t parser_ac4, int sg_idx, int stream_i
             tmp += (uint8_t)variable_bits(2, ds);
         }
     }
+
+    /** IMS case */
+    for (i = 0; i < parser_ac4->n_presentations; i++)
+    {
+        if (parser_ac4->presentation_version[i] == 2)
+        {
+            tmp = parser_ac4->group_index[i][0];
+            if (tmp == sg_idx)
+            {
+                if (parser_ac4->group_substream_ch_mode[sg_idx][stream_idx] == 6)
+                {
+                    parser_ac4->isAtmos[i] = 1;
+                }
+
+                if (((parser_ac4->group_substream_ch_mode[sg_idx][stream_idx] == 5) 
+                    || (parser_ac4->group_substream_ch_mode[sg_idx][stream_idx] == 6)) )
+                    {
+                        parser_ac4->group_substream_ch_mode[sg_idx][stream_idx] = 1;
+                    }
+            }
+        }
+    }
+
 }
 
 static void
-oamd_substream_info(bbio_handle_t bs, int b_substreams_present)
+oamd_substream_info(bbio_handle_t bs, int32_t b_substreams_present)
 {
     uint32_t tmp;
     src_read_bits(bs, 1);
@@ -593,8 +728,9 @@ static const uint8_t isf_config_objects_num[6] = {4, 8, 10, 14, 15, 30};
 /** Based on Table 84 */
 static const uint8_t bed_chan_assign_code_ch_num[8] = {2, 3, 6, 8, 10, 8, 10, 12};
 
+#define CEILING_POS(X) ((X-(int32_t)(X)) > 0 ? (int32_t)(X+1) : (int32_t)(X))
 static void
-bed_dyn_obj_assignment(parser_ac4_handle_t parser_ac4, bbio_handle_t ds, uint32_t n_signals, int sg_idx, int substream_idx, int flag) {
+bed_dyn_obj_assignment(parser_ac4_handle_t parser_ac4, bbio_handle_t ds, uint32_t n_signals, int32_t sg_idx, int32_t substream_idx, int32_t flag) {
 
     uint32_t tmp = 0, i;
     uint32_t n_bed_signals = 0;
@@ -632,7 +768,7 @@ bed_dyn_obj_assignment(parser_ac4_handle_t parser_ac4, bbio_handle_t ds, uint32_
                 else {
                     if (n_signals > 1) {
                         uint32_t bed_ch_bits = 0;
-                        bed_ch_bits = (uint32_t)ceil(log((double)n_signals)/log((double)2));
+                        bed_ch_bits = (uint32_t)CEILING_POS(log((double)n_signals)/log((double)2));
                         n_bed_signals = (uint8_t)src_read_bits(ds, bed_ch_bits) + 1;
                     }
                     else {
@@ -722,7 +858,7 @@ oamd_common_data(bbio_handle_t ds) {
 }
 
 static void
-ac4_substream_info_obj(parser_ac4_handle_t parser_ac4, int sg_idx, int substream_idx, int b_substreams_present) 
+ac4_substream_info_obj(parser_ac4_handle_t parser_ac4, int32_t sg_idx, int32_t substream_idx, int32_t b_substreams_present) 
 {
     uint32_t tmp,i;
     bbio_handle_t ds = parser_ac4->ds;
@@ -769,7 +905,11 @@ ac4_substream_info_obj(parser_ac4_handle_t parser_ac4, int sg_idx, int substream
 
     if (parser_ac4->fs_index == 1) {  /* 48 kHz */
         if (src_read_bits(ds, 1)) {   /* b_sf_multiplier */
-            parser_ac4->sf_multiplier[sg_idx][substream_idx] = (uint8_t)src_read_bits(ds, 1);     /* sf_multiplier */
+            parser_ac4->sf_multiplier[sg_idx][substream_idx] = (uint8_t)src_read_bits(ds, 1) + 1;     /* sf_multiplier */
+        }
+        else
+        {
+            parser_ac4->sf_multiplier[sg_idx][substream_idx] = 0;
         }
     }
     if (src_read_bits(ds, 1)) { /* b_bitrate_info */
@@ -797,9 +937,9 @@ ac4_substream_info_obj(parser_ac4_handle_t parser_ac4, int sg_idx, int substream
     }
 
     {
-        int k = 0;
-        int l = 0;
-        int presentation_idx = -1;
+        int32_t k = 0;
+        int32_t l = 0;
+        int32_t presentation_idx = -1;
         
         for (k = 0; k < 32; k++) {
             for (l = 0; l < 16; l++) {
@@ -826,7 +966,7 @@ ac4_substream_info_obj(parser_ac4_handle_t parser_ac4, int sg_idx, int substream
 }
 
 static void
-ac4_substream_info_ajoc(parser_ac4_handle_t parser_ac4, int sg_idx, int substream_idx, int b_substreams_present)
+ac4_substream_info_ajoc(parser_ac4_handle_t parser_ac4, int32_t sg_idx, int32_t substream_idx, int32_t b_substreams_present)
 {
     uint32_t tmp,i;
     bbio_handle_t ds = parser_ac4->ds;
@@ -857,7 +997,11 @@ ac4_substream_info_ajoc(parser_ac4_handle_t parser_ac4, int sg_idx, int substrea
 
         if (parser_ac4->fs_index == 1) {  /* 48 kHz */
         if (src_read_bits(ds, 1)) {   /* b_sf_multiplier */
-            parser_ac4->sf_multiplier[sg_idx][substream_idx] = (uint8_t)src_read_bits(ds, 1);     /* sf_multiplier */
+            parser_ac4->sf_multiplier[sg_idx][substream_idx] = (uint8_t)src_read_bits(ds, 1) + 1;     /* sf_multiplier */
+        }
+        else
+        {
+            parser_ac4->sf_multiplier[sg_idx][substream_idx] = 0;
         }
     }
     if (src_read_bits(ds, 1)) { /* b_bitrate_info */
@@ -885,9 +1029,9 @@ ac4_substream_info_ajoc(parser_ac4_handle_t parser_ac4, int sg_idx, int substrea
     }
 
     {
-        int k = 0;
-        int l = 0;
-        int presentation_idx = -1;
+        int32_t k = 0;
+        int32_t l = 0;
+        int32_t presentation_idx = -1;
         
         for (k = 0; k < 32; k++) {
             for (l = 0; l < 16; l++) {
@@ -925,7 +1069,7 @@ ac4_hsf_ext_substream_info_v2(bbio_handle_t bs, uint8_t b_substreams_present)
 }
 
 static void
-ac4_substream_group_info(parser_ac4_handle_t parser_ac4, int substream_group_idx)
+ac4_substream_group_info(parser_ac4_handle_t parser_ac4, int32_t substream_group_idx)
 {
     bbio_handle_t       ds         = parser_ac4->ds;
     uint32_t i;
@@ -991,7 +1135,7 @@ ac4_substream_group_info(parser_ac4_handle_t parser_ac4, int substream_group_idx
 }
 
 static void
-ac4_sgi_specifier(parser_ac4_handle_t parser_ac4,  int presentation_idx, int pres_conf, int substream_group_idx)
+ac4_sgi_specifier(parser_ac4_handle_t parser_ac4,  int32_t presentation_idx, int32_t pres_conf, int32_t substream_group_idx)
 {
     bbio_handle_t       ds         = parser_ac4->ds;
     pres_conf;
@@ -1010,7 +1154,7 @@ ac4_sgi_specifier(parser_ac4_handle_t parser_ac4,  int presentation_idx, int pre
 }
 
 static void
-ac4_substream_info(parser_ac4_handle_t parser_ac4, int present_idx, int substream_idx)
+ac4_substream_info(parser_ac4_handle_t parser_ac4, int32_t present_idx, int32_t substream_idx)
 {
     bbio_handle_t       ds         = parser_ac4->ds;
     uint32_t tmp, i;
@@ -1078,7 +1222,7 @@ ac4_hsf_ext_substream_info(bbio_handle_t bs)
 }
 
 static void
-presentation_config_ext_info(parser_ac4_handle_t parser_ac4, int idx)
+presentation_config_ext_info(parser_ac4_handle_t parser_ac4, int32_t idx)
 {
     bbio_handle_t       ds         = parser_ac4->ds;
     uint32_t i;
@@ -1097,7 +1241,7 @@ presentation_config_ext_info(parser_ac4_handle_t parser_ac4, int idx)
 
 
 static void /* Parsing presentation info as: ETSI TS 103 190-2 V 1.1.1 part 6.2.1.2 */
-ac4_presentation_info(parser_ac4_handle_t parser_ac4, int index)
+ac4_presentation_info(parser_ac4_handle_t parser_ac4, int32_t index)
 {
     bbio_handle_t       ds         = parser_ac4->ds;
     uint32_t i;
@@ -1114,9 +1258,9 @@ ac4_presentation_info(parser_ac4_handle_t parser_ac4, int index)
         parser_ac4->b_add_emdf_substreams[index] = 1;
     } else {
         parser_ac4->mdcompat[index] = (uint8_t)src_read_bits(ds, 3);
-        parser_ac4->b_presentation_group_index[index] = (uint8_t)src_read_bits(ds, 1);
-        if (parser_ac4->b_presentation_group_index[index]) {
-            parser_ac4->presentation_group_index[index] = (uint8_t)variable_bits(2, ds);
+        parser_ac4->b_presentation_id[index] = (uint8_t)src_read_bits(ds, 1);
+        if (parser_ac4->b_presentation_id[index]) {
+            parser_ac4->presentation_id[index] = (uint8_t)variable_bits(2, ds);
         }
 
         parser_ac4->dsi_frame_rate_multiply_info[index] = (uint8_t)frame_rate_multiply_info(parser_ac4, ds, index);
@@ -1204,8 +1348,8 @@ ac4_presentation_substream_info(bbio_handle_t ds)
     }
 }
 
-static void
-ac4_presentation_v1_info(parser_ac4_handle_t parser_ac4, int index)
+static int32_t
+ac4_presentation_v1_info(parser_ac4_handle_t parser_ac4, int32_t index)
 {
     bbio_handle_t       ds         = parser_ac4->ds;
     uint32_t i;
@@ -1228,9 +1372,17 @@ ac4_presentation_v1_info(parser_ac4_handle_t parser_ac4, int index)
         if (parser_ac4->bitstream_version != 1) {
             parser_ac4->mdcompat[index] = (uint8_t)src_read_bits(ds, 3);
         }
-        parser_ac4->b_presentation_group_index[index] = (uint8_t)src_read_bits(ds, 1);
-        if (parser_ac4->b_presentation_group_index[index]) {
-            parser_ac4->presentation_group_index[index] = (uint8_t)variable_bits(2, ds);
+        parser_ac4->b_presentation_id[index] = (uint8_t)src_read_bits(ds, 1);
+        if (parser_ac4->b_presentation_id[index]) {
+            parser_ac4->presentation_id[index] = (uint16_t)variable_bits(2, ds);
+        }
+        else
+        {
+            if ( !((parser_ac4->n_presentations == 1) && (parser_ac4->presentation_version[index] != 2)))
+            {
+                printf("Error: AC4 Multiple presentation or IMS stream MUST have presentation id!\n");
+                return 1;
+            }
         }
 
         parser_ac4->dsi_frame_rate_multiply_info[index] = (uint8_t)frame_rate_multiply_info(parser_ac4, ds, index);
@@ -1306,6 +1458,7 @@ ac4_presentation_v1_info(parser_ac4_handle_t parser_ac4, int index)
         }
     }
 
+    return 0;
 }
 
 
@@ -1387,11 +1540,12 @@ get_time_scale(parser_ac4_handle_t parser_ac4)
 }
 
 /* Parsing toc as: ETSI TS 103 190-2 V 1.1.1 part 6.2.1 */
-static void 
+static int32_t 
 parser_ac4_toc(parser_ac4_handle_t parser_ac4)
 {
     bbio_handle_t       ds         = parser_ac4->ds;
     uint32_t tmp, payload_base, i,j;
+    uint32_t ret = 0;
 
     src_byte_align(ds);
     parser_ac4->total_n_substream_groups = 0;
@@ -1408,6 +1562,19 @@ parser_ac4_toc(parser_ac4_handle_t parser_ac4)
     if (tmp)
     {
         tmp = (uint8_t)src_read_bits(ds, 3); /*skip wait_frames, 3 bit*/
+        if (tmp == 0)
+        {
+            parser_ac4->bit_rate_mode = 1;
+        }
+        else if ((tmp >0) && (tmp < 7))
+        {
+            parser_ac4->bit_rate_mode = 2;
+        }
+        else
+        {
+            parser_ac4->bit_rate_mode = 3;
+        }
+
         if (tmp > 0)
         {
             tmp = (uint8_t)src_read_bits(ds, 2); /*skip br_code 2 bit*/
@@ -1441,9 +1608,8 @@ parser_ac4_toc(parser_ac4_handle_t parser_ac4)
         }
     }
     if (parser_ac4->bitstream_version <= 1) {
-        for (i = 0; i < parser_ac4->n_presentations; i++) {
-            ac4_presentation_info(parser_ac4,i);
-        }
+        printf("Error: AC4 ES with bitstream version 0 or 1 had been deprecated.\n ");
+        return 1;
     }
     else
     {
@@ -1457,7 +1623,11 @@ parser_ac4_toc(parser_ac4_handle_t parser_ac4)
             }
         }
         for (i = 0; i < parser_ac4->n_presentations; i++) {
-            ac4_presentation_v1_info(parser_ac4, i);
+            ret = ac4_presentation_v1_info(parser_ac4, i);
+            if(ret)
+            {
+                return 1;
+            }
         }
         parser_ac4->total_n_substream_groups = 1 + parser_ac4->max_group_index;
         for (j = 0; j < parser_ac4->total_n_substream_groups; j++) {
@@ -1468,16 +1638,17 @@ parser_ac4_toc(parser_ac4_handle_t parser_ac4)
         }
     }
 
+    return 0;
     /* ac4 dsi don't need info from the following table, just skip it */
     /*  substream_index_table(); */
     /*  byte_align; */
 
 }
 
-/* get channel count from ch_mode; Spec: 6.3.2.7.2 table 87*/
+/* get channel count from ch_mode; Spec: 6.3.2.7.2 table 78*/
 /* attention: ch_mode is not the value of channel_mode */
-static int
-get_channel_count(int ch_mode)
+static int32_t
+get_channel_count(int32_t ch_mode)
 {
     switch (ch_mode) {
     case 0x0:
@@ -1507,13 +1678,48 @@ get_channel_count(int ch_mode)
     }
 }
 
-static int
+static int32_t
+get_channel_count_new(parser_ac4_handle_t parser)
+{
+    int32_t channel_count = 0;
+    int32_t channel_mask = 0;
+    int32_t i = 0;
+
+    channel_mask = generate_real_channel_mask(parser, 0, -1, -1);
+
+    /* channel_mask equal to -1, means presentation 0 is not channel coded. */
+    if(channel_mask == -1)
+    {
+        return 2;
+    }
+
+    for(i = 0; i < 19; i++)
+    {
+        if ((channel_mask >> i) & 1)
+        {
+            if ((i == 1) || (i == 6) || (i == 9) || (i == 10)
+                || (i == 11) || (i == 12) || (i == 14) || (i == 15))
+            {
+                channel_count += 1;
+            }
+            else 
+            {
+                channel_count += 2;
+            }
+        }
+    }
+
+    return channel_count;
+}
+
+static int32_t
 parser_ac4_get_sample(parser_handle_t parser, mp4_sample_handle_t sample)
 {
     parser_ac4_handle_t parser_ac4 = (parser_ac4_handle_t)parser;
     bbio_handle_t       ds         = parser->ds;
-    int                 sync;
+    int32_t                 sync;
     int64_t             file_offset;
+    int32_t ret = 0;
 
     sample->flags = 0;
 
@@ -1541,7 +1747,12 @@ parser_ac4_get_sample(parser_handle_t parser, mp4_sample_handle_t sample)
     /* save file offset as the sample data start here */
     file_offset = ds->position(ds);
 
-    parser_ac4_toc(parser_ac4);
+    ret = parser_ac4_toc(parser_ac4);
+
+    if(ret)
+    {
+        return EMA_MP4_MUXED_ES_ERR;
+    }
 
     if (parser_ac4->sample_num)
     {
@@ -1552,7 +1763,7 @@ parser_ac4_get_sample(parser_handle_t parser, mp4_sample_handle_t sample)
         /* get channelcount info from the first sample's toc (the first present is the default present)*/
         /*  The ChannelCount field should be set to the total number of audio output channels of the default presentation of that
             track, if not defined differently by an application standard.*/
-        parser_ac4->channelcount = get_channel_count(parser_ac4->pres_ch_mode[0]);
+        parser_ac4->channelcount = get_channel_count_new(parser_ac4);
 
         /* the first one should have all the new info */
         sample->flags |= SAMPLE_NEW_SD;
@@ -1613,10 +1824,10 @@ parser_ac4_get_sample(parser_handle_t parser, mp4_sample_handle_t sample)
 }
 
 /* currently just create dsi as spec: ETSI TS 103 190 V 1.1.0 */
-static int /* return number of written bits */
-ac4_substream_dsi(parser_ac4_handle_t parser_ac4, bbio_handle_t snk, int presentation_idx, int substream_idx)
+static int32_t /* return number of written bits */
+ac4_substream_dsi(parser_ac4_handle_t parser_ac4, bbio_handle_t snk, int32_t presentation_idx, int32_t substream_idx)
 {
-    int      payloadbits = 0;
+    int32_t      payloadbits = 0;
     uint32_t i;
 
     sink_write_bits(snk, 5, parser_ac4->ch_mode[presentation_idx][substream_idx]);
@@ -1653,10 +1864,10 @@ ac4_substream_dsi(parser_ac4_handle_t parser_ac4, bbio_handle_t snk, int present
 }
 
 
-static int /* calc number of bits to be written */
-calc_ac4_substream_dsi(parser_ac4_handle_t parser_ac4, int presentation_idx, int substream_idx)
+static int32_t /* calc number of bits to be written */
+calc_ac4_substream_dsi(parser_ac4_handle_t parser_ac4, int32_t presentation_idx, int32_t substream_idx)
 {
-    int      payloadbits = 0;
+    int32_t      payloadbits = 0;
     uint32_t i;
 
     payloadbits += 8;
@@ -1680,10 +1891,10 @@ calc_ac4_substream_dsi(parser_ac4_handle_t parser_ac4, int presentation_idx, int
     return payloadbits;
 }
 
-static int /* calc number of bits to be written */
-calc_presentation_v0_dsi (parser_ac4_handle_t parser_ac4, int presentation_idx)
+static int32_t /* calc number of bits to be written */
+calc_presentation_v0_dsi (parser_ac4_handle_t parser_ac4, int32_t presentation_idx)
 {
-    int      payloadBits = 0;
+    int32_t      payloadBits = 0;
     uint32_t i = presentation_idx;
     uint32_t j;
 
@@ -1692,7 +1903,7 @@ calc_presentation_v0_dsi (parser_ac4_handle_t parser_ac4, int presentation_idx)
     {
         payloadBits += 4;
 
-        if (parser_ac4->b_presentation_group_index[i]) 
+        if (parser_ac4->b_presentation_id[i]) 
         {
             payloadBits += 5;
         }
@@ -1745,10 +1956,10 @@ calc_presentation_v0_dsi (parser_ac4_handle_t parser_ac4, int presentation_idx)
 
     return payloadBits;
 }
-static int /* return number of writen bits */
-presentation_v0_dsi (parser_ac4_handle_t parser_ac4, bbio_handle_t snk, int presentation_idx)
+static int32_t /* return number of writen bits */
+presentation_v0_dsi (parser_ac4_handle_t parser_ac4, bbio_handle_t snk, int32_t presentation_idx)
 {
-    int      payloadBits = 0;
+    int32_t      payloadBits = 0;
     uint32_t i = presentation_idx;
     uint32_t j;
 
@@ -1764,12 +1975,12 @@ presentation_v0_dsi (parser_ac4_handle_t parser_ac4, bbio_handle_t snk, int pres
     {
         /* ETSI TS 103 190-1 V1.1.2 changed  */
         sink_write_bits(snk, 3, parser_ac4->mdcompat[i]);
-        sink_write_bits(snk, 1, parser_ac4->b_presentation_group_index[i]);
+        sink_write_bits(snk, 1, parser_ac4->b_presentation_id[i]);
         payloadBits += 4;
 
-        if (parser_ac4->b_presentation_group_index[i]) 
+        if (parser_ac4->b_presentation_id[i]) 
         {
-            sink_write_bits(snk, 5, parser_ac4->presentation_group_index[i]);
+            sink_write_bits(snk, 5, parser_ac4->presentation_id[i]);
             payloadBits += 5;
         }
 
@@ -1778,8 +1989,8 @@ presentation_v0_dsi (parser_ac4_handle_t parser_ac4, bbio_handle_t snk, int pres
         sink_write_bits(snk, 10, parser_ac4->key_id[i]);
         
         {
-            int substreams_channel_mask = 0;
-            int substream_index = 0;
+            int32_t substreams_channel_mask = 0;
+            int32_t substream_index = 0;
             
             for(substream_index = 0; substream_index < 3; substream_index++)
             {
@@ -1788,7 +1999,7 @@ presentation_v0_dsi (parser_ac4_handle_t parser_ac4, bbio_handle_t snk, int pres
                     substreams_channel_mask |= chmode_2_channel_mask[parser_ac4->ch_mode[presentation_idx][substream_index]];
                 }
             }
-            sink_write_bits(snk, 24, 0x780000 | substreams_channel_mask);
+            sink_write_bits(snk, 24, substreams_channel_mask);
         }
 
         payloadBits += 41;
@@ -1855,10 +2066,10 @@ presentation_v0_dsi (parser_ac4_handle_t parser_ac4, bbio_handle_t snk, int pres
     return payloadBits;
 }
 
-static int
-ac4_substream_group_dsi(parser_ac4_handle_t parser_ac4, bbio_handle_t snk, int sg_idx)
+static int32_t
+ac4_substream_group_dsi(parser_ac4_handle_t parser_ac4, bbio_handle_t snk, int32_t sg_idx)
 {
-    int      payloadbits = 0;
+    int32_t      payloadbits = 0;
     uint32_t i;
     int8_t temp = 0;
     uint8_t objects_assignment_mask = 0;
@@ -1866,7 +2077,7 @@ ac4_substream_group_dsi(parser_ac4_handle_t parser_ac4, bbio_handle_t snk, int s
     sink_write_bits(snk, 1, parser_ac4->b_substreams_present[sg_idx]);
     sink_write_bits(snk, 1, parser_ac4->b_hsf_ext_v2[sg_idx]);
     sink_write_bits(snk, 1, parser_ac4->b_channel_coded[sg_idx]);
-    temp = (signed char)(parser_ac4->n_lf_substreams_minus2[sg_idx]+2);
+    temp = (int8_t)(parser_ac4->n_lf_substreams_minus2[sg_idx]+2);
     sink_write_bits(snk, 8, temp);
     payloadbits += 11;
 
@@ -1875,7 +2086,9 @@ ac4_substream_group_dsi(parser_ac4_handle_t parser_ac4, bbio_handle_t snk, int s
         sink_write_bits(snk, 1, parser_ac4->bitrate_indicator_v2[sg_idx][i]); 
         payloadbits += 3;
         if (parser_ac4->b_channel_coded[sg_idx]) {
-            sink_write_bits(snk, 24, 0x780000 | chmode_2_channel_mask[parser_ac4->group_substream_ch_mode[sg_idx][i]]);
+            int32_t real_ch_mode = 0;
+            real_ch_mode = generate_real_channel_mask(parser_ac4, -1, sg_idx, i);
+            sink_write_bits(snk, 24, real_ch_mode);
             payloadbits += 24;
         }
         else {
@@ -1931,14 +2144,14 @@ ac4_substream_group_dsi(parser_ac4_handle_t parser_ac4, bbio_handle_t snk, int s
     return payloadbits;
 }
 
-static int
-calc_ac4_substream_group_dsi(parser_ac4_handle_t parser_ac4, int sg_idx)
+static int32_t
+calc_ac4_substream_group_dsi(parser_ac4_handle_t parser_ac4, int32_t sg_idx)
 {
-    int      payloadbits = 0;
+    int32_t      payloadbits = 0;
     uint32_t i;
     int8_t temp = 0;
 
-    temp = (signed char)(parser_ac4->n_lf_substreams_minus2[sg_idx]+2);
+    temp = (int8_t)(parser_ac4->n_lf_substreams_minus2[sg_idx]+2);
     payloadbits += 11;
 
     for(i = 0; i < (uint32_t)temp; i++) {
@@ -1976,10 +2189,10 @@ calc_ac4_substream_group_dsi(parser_ac4_handle_t parser_ac4, int sg_idx)
 }
 
 
-static int /* return number of bits to be written */
-calc_presentation_v1_dsi (parser_ac4_handle_t parser_ac4, int presentation_idx)
+static int32_t /* return number of bits to be written */
+calc_presentation_v1_dsi (parser_ac4_handle_t parser_ac4, int32_t presentation_idx)
 {
-    int      payloadBits = 0;
+    int32_t      payloadBits = 0;
     uint32_t i = presentation_idx;
     uint32_t j;
     uint32_t b_pres_channel_coded = 0;
@@ -1996,7 +2209,8 @@ calc_presentation_v1_dsi (parser_ac4_handle_t parser_ac4, int presentation_idx)
     else
     {
         payloadBits += 4;
-        if (parser_ac4->b_presentation_group_index[i]) 
+
+        if (parser_ac4->b_presentation_id[i]) 
         {
             payloadBits += 5;
         }
@@ -2124,14 +2338,16 @@ calc_presentation_v1_dsi (parser_ac4_handle_t parser_ac4, int presentation_idx)
         payloadBits += (8 - (payloadBits % 8));
     }
 
+    payloadBits += 8;
+
     return payloadBits;
 }
 
 /** Based on spec: ETSI TS 103 190-2 V1.1.1 part E.10 */
-static int /* return number of written bits */
-presentation_v1_dsi(parser_ac4_handle_t parser_ac4, bbio_handle_t snk, int presentation_idx)
+static int32_t /* return number of written bits */
+presentation_v1_dsi(parser_ac4_handle_t parser_ac4, bbio_handle_t snk, int32_t presentation_idx, int32_t is_IMS, int32_t is_duplicated)
 {
-    int      payloadBits = 0;
+    int32_t      payloadBits = 0;
     uint32_t i = presentation_idx;
     uint32_t j;
     uint32_t b_pres_channel_coded = 0;
@@ -2156,12 +2372,12 @@ presentation_v1_dsi(parser_ac4_handle_t parser_ac4, bbio_handle_t snk, int prese
     else
     {
         sink_write_bits(snk, 3, parser_ac4->mdcompat[i]);
-        sink_write_bits(snk, 1, parser_ac4->b_presentation_group_index[i]);
+        sink_write_bits(snk, 1, parser_ac4->b_presentation_id[i]);
         payloadBits += 4;
 
-        if (parser_ac4->b_presentation_group_index[i]) 
+        if (parser_ac4->b_presentation_id[i]) 
         {
-            sink_write_bits(snk, 5, parser_ac4->presentation_group_index[i]);
+            sink_write_bits(snk, 5, parser_ac4->presentation_id[i]);
             payloadBits += 5;
         }
 
@@ -2193,33 +2409,43 @@ presentation_v1_dsi(parser_ac4_handle_t parser_ac4, bbio_handle_t snk, int prese
                 parser_ac4->pres_ch_mode[i] == 14 )
             {
                 /* pres_b_4_back_channels_present 1bit */
-                int k = 0;
-                int temp = 0;
-                for (k = 0; k < (uint8_t)(parser_ac4->n_lf_substreams_minus2[i]+2); k++)
-                    temp = temp | parser_ac4->b_4_back_channels_present[i][k];
+                int32_t k = 0;
+                int32_t temp = 0;
+                
+                for (k = 0; k < parser_ac4->n_substream_groups[i]; k++)
+                {
+                    temp = temp | parser_ac4->b_4_back_channels_present[parser_ac4->group_index[i][k]][0];
+                }
 
                 if (temp)
                     sink_write_bits(snk, 1, 1);
                 else
                     sink_write_bits(snk, 1, 0);
-                /* pres_top_channel_pairs 2bits */
-                for (k = 0; k < (uint8_t)(parser_ac4->n_lf_substreams_minus2[i]+2); k++)
+
+                /** pres_top_channel_pairs 2bits */
+                temp = 0;
+                for (k = 0; k < parser_ac4->n_substream_groups[i]; k++)
                 {
-                    if (parser_ac4->top_channels_present[i][k] > temp)
-                        temp = parser_ac4->top_channels_present[i][k];
+                    if (parser_ac4->top_channels_present[parser_ac4->group_index[i][k]][0] > temp)
+                        temp = parser_ac4->top_channels_present[parser_ac4->group_index[i][k]][0];
                 }
-                if (temp == 0)
-                    sink_write_bits(snk, 2, 0);
+                if ((temp == 1) || (temp == 2))
+                    sink_write_bits(snk, 2, 1);
                 else if (temp == 3)
                     sink_write_bits(snk, 2, 2);
                 else
-                    sink_write_bits(snk, 2, 1);
+                    sink_write_bits(snk, 2, 0);
 
                 payloadBits += 3;
             }
-            /* presentation_channel_mask_v1 24bits */
-            sink_write_bits(snk, 24, 0x780000 | chmode_2_channel_mask[parser_ac4->pres_ch_mode[i]]);
-            payloadBits += 24;
+            
+            {
+                int32_t real_mask = 0;
+
+                real_mask = generate_real_channel_mask(parser_ac4, presentation_idx, -1, -1);
+                sink_write_bits(snk, 24, real_mask);
+                payloadBits += 24;
+            }
         }
          /* b_presentation_core_differs */
         if (parser_ac4->pres_ch_mode_core[i] == 0xff)
@@ -2235,11 +2461,16 @@ presentation_v1_dsi(parser_ac4_handle_t parser_ac4, bbio_handle_t snk, int prese
         payloadBits += 1;
 
         if (b_presentation_core_differs) {
-            sink_write_bits(snk, 1, b_presentation_core_differs);
-            payloadBits += 1;
             if (parser_ac4->pres_ch_mode_core[i] != 0xff) {
+                sink_write_bits(snk, 1, 1);
+                payloadBits += 1;
                 sink_write_bits(snk, 2, parser_ac4->pres_ch_mode_core[i] - 3);
                 payloadBits += 2;
+            }
+            else
+            {
+                sink_write_bits(snk, 1, 0);
+                payloadBits += 1;
             }
         }
 
@@ -2319,7 +2550,17 @@ presentation_v1_dsi(parser_ac4_handle_t parser_ac4, bbio_handle_t snk, int prese
                 break;
             }
         }
-        sink_write_bits(snk, 1, parser_ac4->b_pre_virtualized[i]);
+        
+        /** IMS Presentation */
+        if (is_IMS && (!is_duplicated))
+        {
+             sink_write_bits(snk, 1, 1);
+        }
+        else
+        {
+            sink_write_bits(snk, 1, parser_ac4->b_pre_virtualized[i]);
+        }
+        
         sink_write_bits(snk, 1, parser_ac4->b_add_emdf_substreams[i]);
         payloadBits += 2;
     }
@@ -2348,18 +2589,34 @@ presentation_v1_dsi(parser_ac4_handle_t parser_ac4, bbio_handle_t snk, int prese
         /* sink_flush_bits(snk); */
         payloadBits += (8 - (payloadBits % 8));
     }
+    /* store DE indicator; atmos indicator */
+    sink_write_bits(snk, 1, 1);
+
+    /** IMS Presentation */
+    if (parser_ac4->isAtmos[presentation_idx])
+    {
+        sink_write_bits(snk, 1, 1);
+    }
+    else
+    {
+        sink_write_bits(snk, 1, 0);
+    }
+    sink_write_bits(snk, 6, 0);
+    payloadBits += 8;
 
     return payloadBits;
 }
 
-static int
+static int32_t
 parser_ac4_get_mp4_cfg(parser_handle_t parser, uint8_t **buf, size_t *buf_len)
 {
     parser_ac4_handle_t parser_ac4   = (parser_ac4_handle_t)parser;
     uint32_t           i,j;
     uint32_t           payloadBits = 0;
     uint32_t           pre_calc_bytes = 0, tmp;
+    uint32_t           is_duplicate_dsi = 0;
     bbio_handle_t      snk;
+    uint32_t imsPresentationNum = 0;
 
     snk = reg_bbio_get('b', 'w');
     if (*buf)
@@ -2370,13 +2627,26 @@ parser_ac4_get_mp4_cfg(parser_handle_t parser, uint8_t **buf, size_t *buf_len)
     {
         snk->set_buffer(snk, NULL, 80, 1); /* just set to 80 now */
     }
-    
+
+    parser->ac4_bitstream_version = parser_ac4->bitstream_version;
+    parser->ac4_presentation_version = parser_ac4->presentation_version[0];
+    parser->ac4_mdcompat = parser_ac4->mdcompat[0];
+
     sink_flush_bits(snk);
     sink_write_bits(snk, 3, 1);  /* ac4_dsi_version field shall be set to '001' */
     sink_write_bits(snk, 7, parser_ac4->bitstream_version);
     sink_write_bits(snk, 1, parser_ac4->fs_index);
     sink_write_bits(snk, 4, parser_ac4->frame_rate_index);
-    sink_write_bits(snk, 9, parser_ac4->n_presentations);
+    
+    /** single presentation and it's IMS, we'll add more presentation */
+    for(i = 0; i < parser_ac4->n_presentations; i++)
+    {
+        if(parser_ac4->presentation_version[i] == 2)
+            imsPresentationNum++;
+    }
+
+    sink_write_bits(snk, 9, parser_ac4->n_presentations + imsPresentationNum);
+
     payloadBits += 24;
 
     if(parser_ac4->bitstream_version > 1) {
@@ -2394,10 +2664,10 @@ parser_ac4_get_mp4_cfg(parser_handle_t parser, uint8_t **buf, size_t *buf_len)
         }
     }
 
-    /* ac4_bitrate_dsi(); */
-    sink_write_bits(snk, 2, 0); /*  bit_rate_mode, 0: bit rate mode not specified */
-    sink_write_bits(snk, 32, 0); /* bit_rate, The value 0 means that the bit rate is unknown. */
-    sink_write_bits(snk, 32, 0xffffffff); /* bit_rate_precision, The value 0xFFFFFFFF means that the bit rate precision is unknown. */
+    /* ac4_bitrate_dsi structure */
+    sink_write_bits(snk, 2, parser_ac4->bit_rate_mode);
+    sink_write_bits(snk, 32, parser->ext_timing.ac4_bitrate);
+    sink_write_bits(snk, 32, parser->ext_timing.ac4_bitrate_precision);
     payloadBits += 66;
 
     /* byte_align */
@@ -2420,7 +2690,7 @@ parser_ac4_get_mp4_cfg(parser_handle_t parser, uint8_t **buf, size_t *buf_len)
             pre_calc_bytes = tmp >> 3;
         }
         else {
-            if (parser_ac4->presentation_version[i] == 1) {
+            if (parser_ac4->presentation_version[i] > 0) {
                 tmp = calc_presentation_v1_dsi(parser_ac4 , i);
                 pre_calc_bytes = tmp >> 3;
             }
@@ -2441,7 +2711,12 @@ parser_ac4_get_mp4_cfg(parser_handle_t parser, uint8_t **buf, size_t *buf_len)
         }
         else {
             if (parser_ac4->presentation_version[i] == 1) {
-                presentation_bits = presentation_v1_dsi(parser_ac4 ,snk, i);    
+                presentation_bits = presentation_v1_dsi(parser_ac4 ,snk, i, 0, 0);
+                presentation_bytes = presentation_bits >> 3;
+                payloadBits += presentation_bits;
+            }
+            else if (parser_ac4->presentation_version[i] == 2) {
+                presentation_bits = presentation_v1_dsi(parser_ac4 ,snk, i, 1, 0);
                 presentation_bytes = presentation_bits >> 3;
                 payloadBits += presentation_bits;
             }
@@ -2456,6 +2731,32 @@ parser_ac4_get_mp4_cfg(parser_handle_t parser, uint8_t **buf, size_t *buf_len)
             sink_write_bits(snk, 8, 0);
         }
 
+        /** IMS duplicated presentation DSI */
+        if (parser_ac4->presentation_version[i] == 2)
+        {
+            uint32_t presentation_bytes = 0, presentation_bits = 0;
+            sink_write_bits(snk, 8, 1);
+            if (pre_calc_bytes > 255) 
+            {
+                sink_write_bits(snk, 8, 0xff);
+                sink_write_bits(snk, 16, pre_calc_bytes - 255);
+            }
+            else 
+            {
+                sink_write_bits(snk, 8, pre_calc_bytes);
+            }
+
+            presentation_bits = presentation_v1_dsi(parser_ac4 ,snk, i, 1, 1);
+            presentation_bytes = presentation_bits >> 3;
+            payloadBits += presentation_bits;
+
+            assert(presentation_bytes == pre_calc_bytes);
+            /** as pre_bytes could be bigger, skip area needed. */
+            for(j = 0; j < pre_calc_bytes - presentation_bytes; j++)
+            {
+                sink_write_bits(snk, 8, 0);
+            }
+        }
     }
     /* sink_flush_bits(snk); already aligned */
     *buf = snk->get_buffer(snk, buf_len, 0);  /* here buf_len is set to data_size */
@@ -2470,7 +2771,7 @@ parser_ac4_show_info(parser_handle_t parser)
     (void)parser;  /* avoid compiler warning */
 }
 
-static int
+static int32_t
 parser_ac4_init(parser_handle_t parser, ext_timing_info_t *ext_timing, uint32_t es_idx,  bbio_handle_t ds)
 {
     parser_ac4_handle_t parser_ac4 = (parser_ac4_handle_t)parser;
