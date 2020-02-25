@@ -351,6 +351,8 @@ uint32_t
 ema_mp4_mux_start(ema_mp4_ctrl_handle_t handle)
 {
     int32_t      es_idx;
+    int32_t      has_video = 0;
+    int32_t      has_audio = 0;
     usr_cfg_es_t *usr_cfg_es;
     time_t       ltime_s, ltime_e;
     int32_t      ret = EMA_MP4_MUXED_OK;
@@ -509,6 +511,23 @@ ema_mp4_mux_start(ema_mp4_ctrl_handle_t handle)
                 parser->destroy(parser);
             }
             CHK_ERR_CNT(ret);
+
+            /** set tkhd flags and alternative group */
+            handle->usr_cfg_ess[es_idx].force_tkhd_flags = (handle->usr_cfg_mux.output_format == OUTPUT_FORMAT_MP4) ? 0xF : 0x7;
+            if(parser->stream_type == STREAM_TYPE_VIDEO)
+            {
+                handle->usr_cfg_ess[es_idx].alternate_group = 1;
+                if(has_video)
+                    handle->usr_cfg_ess[es_idx].force_tkhd_flags &=  0xE;
+                has_video = 1;
+            }
+            else if(parser->stream_type == STREAM_TYPE_AUDIO)
+            {
+                handle->usr_cfg_ess[es_idx].alternate_group = 2;
+                if(has_audio)
+                    handle->usr_cfg_ess[es_idx].force_tkhd_flags &=  0xE;
+                has_audio = 1;            
+            }
 
             /** add a track to muxer */
             handle->usr_cfg_ess[es_idx].track_ID =

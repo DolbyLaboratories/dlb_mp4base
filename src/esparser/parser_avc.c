@@ -1,26 +1,26 @@
-/************************************************************************************************************
- * Copyright (c) 2017, Dolby Laboratories Inc.
- * All rights reserved.
-
- * Redistribution and use in source and binary forms, with or without modification, are permitted
- * provided that the following conditions are met:
-
- * 1. Redistributions of source code must retain the above copyright notice, this list of conditions
- *    and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions
- *    and the following disclaimer in the documentation and/or other materials provided with the distribution.
- * 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or
- *    promote products derived from this software without specific prior written permission.
-
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
- * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
- * OF THE POSSIBILITY OF SUCH DAMAGE.
- ************************************************************************************************************/
+/************************************************************************************************************
+ * Copyright (c) 2017, Dolby Laboratories Inc.
+ * All rights reserved.
+
+ * Redistribution and use in source and binary forms, with or without modification, are permitted
+ * provided that the following conditions are met:
+
+ * 1. Redistributions of source code must retain the above copyright notice, this list of conditions
+ *    and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions
+ *    and the following disclaimer in the documentation and/or other materials provided with the distribution.
+ * 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or
+ *    promote products derived from this software without specific prior written permission.
+
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
+ ************************************************************************************************************/
 /*<
  *   @file parser_avc.c
  *   @brief Implements an AVC parser
@@ -855,9 +855,8 @@ parse_sei_messages(avc_decode_t *dec, nal_handle_t nal, BOOL keep_all)
                 return (uint32_t)nal->nal_size;  /* to keep all */
             }
             size = src_read_ue(nal->tmp_buf_bbi);  /* borrow size */
-            if (size > 15 || dec->sps[size].isDefined == 0)
+            if (size > 31 || dec->sps[size].isDefined == 0)
             {
-                msglog(NULL, MSGLOG_ERR, "seq_parameter_set_id in SEI BP wrong\n");
                 if (dec->sps[0].isDefined == 0)
                 {
                     break;
@@ -1588,8 +1587,8 @@ parser_avc_get_sample(parser_handle_t parser, mp4_sample_handle_t sample)
     BOOL found_aud = FALSE;
     int32_t err = EMA_MP4_MUXED_OK;
 
-    BOOL single_sps_flag = TRUE;
-
+    BOOL single_sps_flag = TRUE;
+
     sample->flags = 0;  /* reset flag */
 
     /* Initialization. */
@@ -1601,15 +1600,15 @@ parser_avc_get_sample(parser_handle_t parser, mp4_sample_handle_t sample)
     sample->dependency_level      = 0;
     sample->pic_type              = 0;
     sample->frame_type            = 0xff;
-    
-    if (IS_FOURCC_EQUAL(parser->dsi_name,"avc3") && parser->ext_timing.ps_present_flag != 2)
+    
+    if (IS_FOURCC_EQUAL(parser->dsi_name,"avc3") && parser->ext_timing.ps_present_flag != 2)
     {
-        mp4ff_dsi->dsi_in_mdat = 1;
-    }
-    else
-    {
-        mp4ff_dsi->dsi_in_mdat = 0;
-    }
+        mp4ff_dsi->dsi_in_mdat = 1;
+    }
+    else
+    {
+        mp4ff_dsi->dsi_in_mdat = 0;
+    }
 #if PARSE_DURATION_TEST
     if (parser_avc->au_num && parser_avc->au_num*(uint64_t)(parser_avc->au_ticks) >=
         PARSE_DURATION_TEST*(uint64_t)parser->time_scale)
@@ -1686,8 +1685,8 @@ parser_avc_get_sample(parser_handle_t parser, mp4_sample_handle_t sample)
                     /* Update avc handles */
                     dsi_avc   = (dsi_avc_handle_t)parser->curr_dsi;
                     mp4ff_dsi = (mp4_dsi_avc_handle_t)dsi_avc;
-
-                    single_sps_flag = FALSE;
+
+                    single_sps_flag = FALSE;
                 }
                 keep_nal = ps_list_update(parser_avc, &(mp4ff_dsi->sps_lst), dec->sps_id, nal, &sample->flags);
             }
@@ -1723,11 +1722,11 @@ parser_avc_get_sample(parser_handle_t parser, mp4_sample_handle_t sample)
                     /* Update avc handles */
                     dsi_avc   = (dsi_avc_handle_t)parser->curr_dsi;
                     mp4ff_dsi = (mp4_dsi_avc_handle_t)dsi_avc;
-                    /** PPS could be kept in the bitstream if the SPS keep the same */
-                    if (single_sps_flag) 
-                    {
-                        keep_nal = TRUE;
-                    }
+                    /** PPS could be kept in the bitstream if the SPS keep the same */
+                    if (single_sps_flag) 
+                    {
+                        keep_nal = TRUE;
+                    }
                 }
                 keep_nal = ps_list_update(parser_avc, &(mp4ff_dsi->pps_lst), dec->pps_id, nal, &sample->flags);
             }
@@ -1786,15 +1785,15 @@ parser_avc_get_sample(parser_handle_t parser, mp4_sample_handle_t sample)
 
         /** DolbyVision RPU NALs */
         case NAL_TYPE_UNSPECIFIED28: 
-            /** Dolby Vision RPU NALs found, but the user don't want to signal; Just mux it to comment mp4 */
-            if (parser->ext_timing.ext_dv_profile == 0xff)
-            {
-                parser->dv_rpu_nal_flag = 0;
-            }
-            else
-            {
+            /** Dolby Vision RPU NALs found, but the user don't want to signal; Just mux it to comment mp4 */
+            if (parser->ext_timing.ext_dv_profile == 0xff)
+            {
+                parser->dv_rpu_nal_flag = 0;
+            }
+            else
+            {
                 parser->dv_rpu_nal_flag = 1;
-            }
+            }
             keep_nal  = TRUE;
             break;
 
@@ -2872,14 +2871,14 @@ parser_avc_get_mp4_cfg(parser_handle_t parser, uint8_t **buf, size_t *buf_len)
     sink_write_bits(snk, 2, (dsi->NALUnitLength-1) & 0x03);        /* lengthSizeMinusOne */
 
     sink_write_bits(snk, 3, 0x07);                                 /* reserved = '111'b; */
-
-    if(dsi->dsi_in_mdat && (!parser->ext_timing.ps_present_flag))  /* sample entry name "avc3" */
-    {
-        sink_write_bits(snk, 5, 0);                                /* numOfSequenceParameterSets */
-        sink_write_u8(snk, 0);                                     /* numOfPictureParameterSets */
-    }
-    else /** sample entry name "avc1"*/
-    {
+
+    if(dsi->dsi_in_mdat && (!parser->ext_timing.ps_present_flag))  /* sample entry name "avc3" */
+    {
+        sink_write_bits(snk, 5, 0);                                /* numOfSequenceParameterSets */
+        sink_write_u8(snk, 0);                                     /* numOfPictureParameterSets */
+    }
+    else /** sample entry name "avc1"*/
+    {
         sink_write_bits(snk, 5, list_get_entry_num(dsi->sps_lst));     /* numOfSequenceParameterSets */
         it_init(it, dsi->sps_lst);
         while ((entry = it_get_entry(it)))
@@ -2894,7 +2893,7 @@ parser_avc_get_mp4_cfg(parser_handle_t parser, uint8_t **buf, size_t *buf_len)
         {
             sink_write_u16(snk, (uint16_t)entry->size);                /* pictureParameterSetLength */
             snk->write(snk, entry->data, entry->size);                 /* pictureParameterSetNALUnit */
-        }
+        }
     }
 
     if( dsi->AVCProfileIndication == 100 || dsi->AVCProfileIndication == 110 ||
@@ -2907,19 +2906,19 @@ parser_avc_get_mp4_cfg(parser_handle_t parser, uint8_t **buf, size_t *buf_len)
         sink_write_bits(snk, 5, 0x1F);                             /* reserved = '11111'b */
         sink_write_bits(snk, 3, dsi->bit_depth_chroma - 8);        /* bit_depth_chroma_minus8 */
 
-        if(dsi->dsi_in_mdat && (!parser->ext_timing.ps_present_flag)) /** sample entry name "avc3"*/
-        {
-            sink_write_u8(snk, 0);      /* numOfSequenceParameterSetExt */
-        }
-        else /** sample entry name "avc1"*/
-        {
+        if(dsi->dsi_in_mdat && (!parser->ext_timing.ps_present_flag)) /** sample entry name "avc3"*/
+        {
+            sink_write_u8(snk, 0);      /* numOfSequenceParameterSetExt */
+        }
+        else /** sample entry name "avc1"*/
+        {
             sink_write_u8(snk, (uint8_t)list_get_entry_num(dsi->sps_ext_lst));  /* numOfSequenceParameterSetExt */
             it_init(it, dsi->sps_ext_lst);
             while ((entry = it_get_entry(it)))
             {
                 sink_write_u16(snk,(uint16_t)entry->size);             /* sequenceParameterSetExtLength */
                 snk->write(snk, entry->data, (int)entry->size);        /* sequenceParameterSetExtNALUnit */
-            }
+            }
         }
     }
     it_destroy(it);
