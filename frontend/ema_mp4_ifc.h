@@ -298,7 +298,7 @@ uint32_t ema_mp4_mux_set_dv_profile(ema_mp4_ctrl_handle_t handle, int32_t profil
  *                 specification for detailed information.
  * \return EMA_MP4_MUXED_...
  */
-uint32_t ema_mp4_mux_set_dv_compatible_id(ema_mp4_ctrl_handle_t handle, int32_t compatible_id);
+uint32_t ema_mp4_mux_set_dv_bl_compatible_id(ema_mp4_ctrl_handle_t handle, int32_t compatible_id);
 
 #ifdef __cplusplus
 }
