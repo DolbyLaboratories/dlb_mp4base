@@ -628,7 +628,7 @@ parse_sequence_parameter_set(avc_decode_t *dec, bbio_handle_t bs)
     DPRINTF(NULL, "   profile_idc: %u\n", temp1);
     if (temp1 > 224 || cpbBrNalfactorTbl[temp1] == 0)
     {
-        msglog(NULL, MSGLOG_ERR, "can handle the profile\n");
+        msglog(NULL, MSGLOG_ERR, "can't handle the profile\n");
         return EMA_MP4_MUXED_ES_ERR;
     }
 
@@ -640,7 +640,7 @@ parse_sequence_parameter_set(avc_decode_t *dec, bbio_handle_t bs)
     DPRINTF(NULL, "   level_idc: %u\n", temp3);
     if (temp3 > SUPPORTED_LEVEL || MaxBRTbl[temp3] == 0)
     {
-        msglog(NULL, MSGLOG_ERR, "can handle the level\n");
+        msglog(NULL, MSGLOG_ERR, "can't handle the level\n");
         return EMA_MP4_MUXED_ES_ERR;
     }
 
