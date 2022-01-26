@@ -81,6 +81,10 @@ mp4muxer_usage(void)
                 "                                      8 - dvhe.08, BL codec: HEVC10; EL codec: N/A;    BL compatibility: SDR/HDR.   \n"
 				"                                      9 - dvav.09, BL codec: AVC;    EL codec: N/A;    BL compatibility: SDR/HDR.   \n"
 				" --dv-bl-compatible-id <arg>        = Sets the Dolby Vision base layer compatible ID, if the profile index is 8, this option must be set by user.\n"
+                " --dvh1flag                         = Set the elementray stream index to set HEVC track's sample entry name to 'dvh1',\n"
+                "                                      default sample entry box name is 'dvhe' for non-cross compatible stream.\n"
+                " --hvc1flag                         = Set the elementray stream index to set HEVC track's sample entry name to 'hvc1',\n"
+                "                                      default sample entry box name is 'hev1' for cross compatible stream.\n"
                 "\n\n");
 
     msglog(NULL, MSGLOG_CRIT, "mp4muxer usage examples: \n"
@@ -97,6 +101,10 @@ mp4muxer_usage(void)
            "            --dv-bl-compatible-id 2 --mpeg4-comp-brand mp42,iso6,isom,msdh,dby1 --overwrite \n"
            "   Note: For the Dolby vision profile 8, dv-bl-compatible-id is necessary. \n\n"
 
+           "To multiplex Dolby vision profile 8.4 file into a .mp4 file with sample entry name as 'hvc1':\n"
+           "   mp4muxer -i ves_8.4.265 -o output.mp4 --hvc1flag 0 --dv-profile 8 \n" 
+           "            --dv-bl-compatible-id 4 --mpeg4-comp-brand mp42,iso6,isom,msdh,dby1 --overwrite \n"
+           "   Note: For the Dolby vision profile 8, dv-bl-compatible-id is necessary. \n\n"
            );
 }
 
@@ -296,6 +304,16 @@ parse_cli(ema_mp4_ctrl_handle_t handle, int32_t argc, int8_t **argv)
         {
             OSAL_SSCANF(*argv, "%u", &ua);
             ret = ema_mp4_mux_set_dv_bl_compatible_id(handle, (int)ua);
+        }
+        else if (!OSAL_STRCASECMP(opt, "--dvh1flag"))
+        {
+            OSAL_SSCANF(*argv, "%u", &ua);
+            ret = ema_mp4_mux_set_sampleentry_dvh1(handle, (int)ua);
+        }
+        else if (!OSAL_STRCASECMP(opt, "--hvc1flag"))
+        {
+            OSAL_SSCANF(*argv, "%u", &ua);
+            ret = ema_mp4_mux_set_sampleentry_hvc1(handle, (int)ua);
         }
 
         else

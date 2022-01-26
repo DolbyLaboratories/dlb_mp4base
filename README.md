@@ -24,7 +24,7 @@ For Windows platform development, Visual Studio 2010 must be installed with SP1.
 
 ### Building instructions
 
-#### Using the makefiles (on Linux)
+#### Using the makefiles (on Linux and MacOS)
 
     After cloning the dlb_mp4base repository to your local machine, go to the appropriate directory, depending on your machine OS and architecture, such as:
     "cd dlb_mp4base/make/mp4muxer<architecture>"

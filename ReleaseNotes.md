@@ -1,3 +1,11 @@
+## v1.1.0 Library New Features:
+
+  * Support sample entry box name set from command line for Dolby Vision profile 4, 5 and 8
+
+## Known limitations/issues
+
+   None
+
 ## v1.0.0 Library Features:
 
   * Single pass multiplexing for fragmented or unfragmented files

@@ -7012,7 +7012,7 @@ mp4_muxer_add_track (mp4_ctrl_handle_t  hmuxer
 
     if (IS_FOURCC_EQUAL(codingname,"hvc1")) 
     {
-        if (p_usr_cfg_es->sample_entry_name_flag & ISOM_MUXCFG_HEVC_SAMPLE_ENTRY_MASK) /** 0: "hev1"; 1: "hvc1" */
+        if (p_usr_cfg_es->sample_entry_name && IS_FOURCC_EQUAL(p_usr_cfg_es->sample_entry_name, "hvc1"))
         {
             FOURCC_ASSIGN(track->codingname, "hvc1");
             FOURCC_ASSIGN(hparser->dsi_name, "hvc1");
@@ -7032,7 +7032,11 @@ mp4_muxer_add_track (mp4_ctrl_handle_t  hmuxer
             FOURCC_ASSIGN(track->codingname, "dvav");
             FOURCC_ASSIGN(hparser->dsi_name, "dvav");
         }
-        else if (IS_FOURCC_EQUAL(codingname,"hvc1") || IS_FOURCC_EQUAL(codingname,"hev1"))
+        if (p_usr_cfg_es->sample_entry_name && IS_FOURCC_EQUAL(p_usr_cfg_es->sample_entry_name, "dvh1")) {
+            FOURCC_ASSIGN(track->codingname, "dvh1");
+            FOURCC_ASSIGN(hparser->dsi_name, "dvh1");
+        }
+        else
         {
             FOURCC_ASSIGN(track->codingname, "dvhe");
             FOURCC_ASSIGN(hparser->dsi_name, "dvhe");
@@ -7511,7 +7515,7 @@ static const mp4base_version_info mp4base_lib_version =
     MP4BASE_V_API,  /** API */
     MP4BASE_V_FCT,  /** Functionality */
     MP4BASE_V_MTNC, /** Maintenance  */
-    "v1.0.1"
+    "v1.1.0"
 };
 
 const mp4base_version_info*

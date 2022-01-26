@@ -300,6 +300,22 @@ uint32_t ema_mp4_mux_set_dv_profile(ema_mp4_ctrl_handle_t handle, int32_t profil
  */
 uint32_t ema_mp4_mux_set_dv_bl_compatible_id(ema_mp4_ctrl_handle_t handle, int32_t compatible_id);
 
+/** \brief  Sets the sample entry box name to 'dvh1' for respetive elementry stream
+ *
+ * \param handle: the multiplexer handle returned by the ema_mp4_mux_create()
+ * \param es_idx: the index of elementry stream.
+ * \return EMA_MP4_MUXED_...
+ */
+uint32_t ema_mp4_mux_set_sampleentry_dvh1(ema_mp4_ctrl_handle_t handle, int32_t es_idx);
+
+/** \brief  Sets the sample entry box name to 'hvc1' for respetive elementry stream
+ *
+ * \param handle: the multiplexer handle returned by the ema_mp4_mux_create()
+ * \param es_idx: the index of elementry stream.
+ * \return EMA_MP4_MUXED_...
+ */
+uint32_t ema_mp4_mux_set_sampleentry_hvc1(ema_mp4_ctrl_handle_t handle, int32_t es_idx);
+
 #ifdef __cplusplus
 }
 #endif

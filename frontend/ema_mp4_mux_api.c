@@ -387,7 +387,7 @@ ema_mp4_mux_start(ema_mp4_ctrl_handle_t handle)
 
 	if((handle->usr_cfg_mux.ext_timing_info.ext_dv_profile == 8 ) && (handle->usr_cfg_mux.ext_timing_info.ext_dv_bl_compatible_id == 0))
 	{
-             msglog(NULL, MSGLOG_ERR, "Error: For Dolby vision profile 8, dv-bl-compatible-id should be set, value can be 1 or 2.\n");
+             msglog(NULL, MSGLOG_ERR, "Error: For Dolby vision profile 8, dv-bl-compatible-id should be set, value can be 1, 2 or 4.\n");
              return EMA_MP4_MUXED_PARAM_ERR;
 	}
 
@@ -1080,6 +1080,40 @@ ema_mp4_mux_set_dv_bl_compatible_id(ema_mp4_ctrl_handle_t handle, int32_t compat
     }
     else
     {
+        return EMA_MP4_MUXED_PARAM_ERR;
+    }
+}
+
+uint32_t
+ema_mp4_mux_set_sampleentry_dvh1(ema_mp4_ctrl_handle_t handle, int32_t es_idx)
+{
+    if (es_idx >= 0 && es_idx < handle->usr_cfg_mux.es_num)
+    {
+        usr_cfg_es_t *usr_cfg_es = &(handle->usr_cfg_ess[es_idx]);
+        usr_cfg_es->sample_entry_name = "dvh1";
+        return EMA_MP4_MUXED_OK;
+    }
+    else
+    {
+        msglog(NULL, MSGLOG_ERR,
+                "Error parsing command line: Unknown es index for --dvh1flag.\n");
+        return EMA_MP4_MUXED_PARAM_ERR;
+    }
+}
+
+uint32_t
+ema_mp4_mux_set_sampleentry_hvc1(ema_mp4_ctrl_handle_t handle, int32_t es_idx)
+{
+    if (es_idx >= 0 && es_idx < handle->usr_cfg_mux.es_num)
+    {
+        usr_cfg_es_t *usr_cfg_es = &(handle->usr_cfg_ess[es_idx]);
+        usr_cfg_es->sample_entry_name = "hvc1";
+        return EMA_MP4_MUXED_OK;
+    }
+    else
+    {
+        msglog(NULL, MSGLOG_ERR,
+                "Error parsing command line: Unknown es index for --hvc1flag.\n");
         return EMA_MP4_MUXED_PARAM_ERR;
     }
 }
