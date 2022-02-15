@@ -7025,7 +7025,7 @@ mp4_muxer_add_track (mp4_ctrl_handle_t  hmuxer
     }
 
 
-    if (hmuxer->usr_cfg_mux_ref->dv_bl_non_comp_flag)
+    if (hmuxer->usr_cfg_mux_ref->dv_bl_non_comp_flag && hparser->stream_type == STREAM_TYPE_VIDEO)
     {
         if (IS_FOURCC_EQUAL(codingname,"avc1") || IS_FOURCC_EQUAL(codingname,"avc3"))
         {
